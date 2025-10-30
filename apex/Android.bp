@@ -43,4 +43,5 @@ apex {
 
     // AAPT2 is required to compile resources
     binaries: ["aapt2"],
+    prebuilts: ["webapp-template-res"],
 }
