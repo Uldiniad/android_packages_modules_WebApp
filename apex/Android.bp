@@ -40,4 +40,7 @@ apex {
     key: "com.android.webapp.key",
     certificate: ":com.android.webapp.certificate",
     defaults: ["b-launched-apex-module"],
+
+    // AAPT2 is required to compile resources
+    binaries: ["aapt2"],
 }
