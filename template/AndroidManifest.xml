@@ -20,6 +20,9 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.webapp.template">
 
+  <!-- TODO: Remove this after using template engine. -->
+  <uses-sdk android:minSdkVersion="36" android:targetSdkVersion="36" />
+
   <application android:label="WebAppTemplate">
 
     <activity android:name=".StubActivity"
