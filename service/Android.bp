@@ -33,6 +33,7 @@ android_app {
         "bouncycastle-webapp",
         "com.android.webapp.flags-aconfig-java",
         "framework-webapp-aidl-java",
+        "jmustache",
         "kotlin-stdlib",
         "kotlinx-coroutines-android",
         "kotlinx_serialization_json",

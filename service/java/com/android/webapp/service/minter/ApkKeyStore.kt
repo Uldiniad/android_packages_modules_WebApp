@@ -56,9 +56,7 @@ class ApkKeyStore {
         }
     }
 
-    /**
-     * Generates a new self-signed RSA key pair and saves it in AndroidKeyStore.
-     */
+    /** Generates a new self-signed RSA key pair and saves it in AndroidKeyStore. */
     private fun generateKeyAndCertificate() {
         val generator =
             KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore")

@@ -31,4 +31,5 @@ import kotlinx.serialization.Serializable
 data class PwaManifest(
     val name: String? = null,
     @SerialName("short_name") val shortName: String? = null,
+    @SerialName("start_url") val startUrl: String? = null,
 )

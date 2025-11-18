@@ -23,6 +23,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageInstaller
 import android.content.pm.PackageManager
 import android.util.Log
+import android.webkit.URLUtil
 import com.android.webapp.service.minter.ApkInfo
 import com.android.webapp.service.minter.ApkKeyStore
 import com.android.webapp.service.minter.ApkMinter
@@ -31,6 +32,7 @@ import com.android.webapp.service.model.PwaManifest
 import java.io.File
 import java.io.FileInputStream
 import java.net.HttpURLConnection
+import java.net.URI
 import java.net.URL
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
@@ -91,6 +93,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
     private suspend fun performInstall(request: InstallRequest) {
         Log.i(TAG, "Start installing $request")
 
+        // TODO(b/448503528): Parse manifest properly
         val manifest =
             fetchAndParseManifest(request.manifestUrl)
                 ?: run {
@@ -100,12 +103,23 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                     return
                 }
         val appName = manifest.shortName ?: manifest.name ?: request.appName
+        val manifestUri = URI(request.manifestUrl)
+        var startUrl =
+            manifest.startUrl
+                ?: run {
+                    // TODO: Replace with actual error code after SDK interface is available
+                    Log.e(TAG, "Missing start_url in the manifest")
+                    request.callback.onInstallResult(1)
+                    return
+                }
+        if (!URLUtil.isNetworkUrl(startUrl)) {
+            startUrl = "${manifestUri.scheme}://${manifestUri.host}${startUrl}"
+        }
 
-        // TODO(b/448503528): Parse manifest
         // TODO: Await user confirmation
 
         val packageName = generatePackageName()
-        val apkInfo = ApkInfo(appName, packageName)
+        val apkInfo = ApkInfo(appName, packageName, request.manifestUrl, startUrl, manifestUri.host)
         val workingDir = File(context.cacheDir, packageName)
         try {
             if (workingDir.exists() && !workingDir.deleteRecursively()) {
