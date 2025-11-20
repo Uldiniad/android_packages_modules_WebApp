@@ -102,24 +102,11 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                     request.callback.onInstallResult(1)
                     return
                 }
-        val appName = manifest.shortName ?: manifest.name ?: request.appName
-        val manifestUri = URI(request.manifestUrl)
-        var startUrl =
-            manifest.startUrl
-                ?: run {
-                    // TODO: Replace with actual error code after SDK interface is available
-                    Log.e(TAG, "Missing start_url in the manifest")
-                    request.callback.onInstallResult(1)
-                    return
-                }
-        if (!URLUtil.isNetworkUrl(startUrl)) {
-            startUrl = "${manifestUri.scheme}://${manifestUri.host}${startUrl}"
-        }
+        val apkInfo = generateApkInfo(request, manifest)
+        val packageName = apkInfo.packageName
 
         // TODO: Await user confirmation
 
-        val packageName = generatePackageName()
-        val apkInfo = ApkInfo(appName, packageName, request.manifestUrl, startUrl, manifestUri.host)
         val workingDir = File(context.cacheDir, packageName)
         try {
             if (workingDir.exists() && !workingDir.deleteRecursively()) {
@@ -243,6 +230,22 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
             packageInstaller.abandonSession(sessionId)
             InstallContinuationManager.continuations.remove(sessionId)
         }
+    }
+
+    private fun generateApkInfo(request: InstallRequest, manifest: PwaManifest): ApkInfo {
+        val appName = manifest.shortName ?: manifest.name ?: request.appName
+        val manifestUri = URI(request.manifestUrl)
+        var startUrl = manifest.startUrl ?: "/"
+        if (!URLUtil.isNetworkUrl(startUrl)) {
+            startUrl = "${manifestUri.scheme}://${manifestUri.host}${startUrl}"
+        }
+        return ApkInfo(
+            appName,
+            generatePackageName(),
+            request.manifestUrl,
+            startUrl,
+            manifestUri.host,
+        )
     }
 
     private fun generatePackageName(): String {
