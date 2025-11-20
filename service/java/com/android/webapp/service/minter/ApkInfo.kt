@@ -22,4 +22,5 @@ data class ApkInfo(
     val manifestUrl: String,
     val startUrl: String,
     val hostName: String,
+    val sdkVersion: String,
 )
