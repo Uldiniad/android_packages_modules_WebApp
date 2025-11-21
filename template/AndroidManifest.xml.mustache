@@ -58,6 +58,28 @@
             <meta-data android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY" android:value="{{packageName}}.fileprovider"/>
             <meta-data android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY" android:value="customtabs"/>
             <meta-data android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION" android:value="default"/>
+
+
+            {{#displayModeFullscreen}}
+                <meta-data android:name="android.support.customtabs.trusted.DISPLAY_MODE"
+                    android:value="immersive" />
+            {{/displayModeFullscreen}}
+
+            {{#displayModeFullscreenSticky}}
+                <meta-data android:name="android.support.customtabs.trusted.DISPLAY_MODE"
+                    android:value="sticky-immersive" />
+            {{/displayModeFullscreenSticky}}
+
+            {{#displayModeMinimalUi}}
+                <meta-data android:name="android.support.customtabs.trusted.DISPLAY_MODE"
+                    android:value="minimal-ui" />
+            {{/displayModeMinimalUi}}
+
+            {{#displayModeBrowser}}
+                <meta-data android:name="android.support.customtabs.trusted.DISPLAY_MODE"
+                    android:value="browser" />
+            {{/displayModeBrowser}}
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

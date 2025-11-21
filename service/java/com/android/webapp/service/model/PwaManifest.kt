@@ -29,7 +29,8 @@ import kotlinx.serialization.Serializable
 @Keep // Prevent this class from being optimized out by R8.
 @Serializable
 data class PwaManifest(
-    val name: String? = null,
+    @SerialName("name") val name: String? = null,
     @SerialName("short_name") val shortName: String? = null,
     @SerialName("start_url") val startUrl: String? = null,
+    @SerialName("display") val display: String? = null,
 )
