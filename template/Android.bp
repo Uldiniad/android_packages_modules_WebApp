@@ -31,11 +31,12 @@ android_app {
     // We need res IDs file to have stable resource IDs for the minted APK.
     emit_res_ids: true,
 
-    optimize: {
-        enabled: true,
-        shrink: true,
-        shrink_resources: true,
-    },
+    // TODO(b/462577557): Re-enable optimizations after investigating build crashes.
+    // optimize: {
+    //    enabled: true,
+    //    shrink: true,
+    //    shrink_resources: true,
+    //},
 
     licenses: [
         "Android-Apache-2.0",
