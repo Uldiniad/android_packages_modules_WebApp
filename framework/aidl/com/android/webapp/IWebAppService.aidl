@@ -17,7 +17,7 @@
 package com.android.webapp;
 
 import com.android.webapp.IWebAppInstallCallback;
-import com.android.webapp.IWebAppVerifyCallback;
+import com.android.webapp.IWebAppQueryCallback;
 
 /**
  * Interface to interact with the Web App service.
@@ -42,11 +42,11 @@ interface IWebAppService {
     );
 
     /**
-     * Verifies if an Android app is installed by the Web App Service.
+     * Queries if an Android app is installed by the Web App Service.
      *
-     * @param packageName Package name of the app to verify.
-     * @param callback The callback to receive the verification result.
+     * @param packageName Package name of the app to query.
+     * @param callback The callback to receive the query result.
      */
     @PermissionManuallyEnforced
-    void verifyPackage(String packageName, in IWebAppVerifyCallback callback);
+    void queryPackage(String packageName, in IWebAppQueryCallback callback);
 }

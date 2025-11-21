@@ -17,12 +17,12 @@
 package com.android.webapp;
 
 /**
- * Callback for the result of a web app verification.
+ * Callback for the result of a web app query.
  * @hide
  */
-oneway interface IWebAppVerifyCallback {
+oneway interface IWebAppQueryCallback {
     /**
-     * Called when the verification result is available.
+     * Called when the query result is available.
      */
-    void onVerifyResult(int resultCode);
+    void onQueryResult(int resultCode);
 }

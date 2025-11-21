@@ -24,5 +24,5 @@ oneway interface IWebAppInstallCallback {
     /**
      * Called when the installation result is available.
      */
-    void onInstallResult(int resultCode);
+    void onInstallResult(int resultCode, String packageName);
 }

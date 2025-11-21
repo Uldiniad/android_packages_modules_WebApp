@@ -36,3 +36,19 @@ java_aconfig_library {
         "//packages/modules/WebApp:__subpackages__",
     ],
 }
+
+java_aconfig_library {
+    name: "com.android.webapp.flags-aconfig-exported-java",
+    aconfig_declarations: "com.android.webapp.flags-aconfig",
+    defaults: ["framework-minus-apex-aconfig-java-defaults"],
+    min_sdk_version: "36",
+    mode: "exported",
+    apex_available: [
+        "//apex_available:platform",
+        "com.android.webapp",
+    ],
+    visibility: [
+        "//frameworks/base:__subpackages__",
+        "//packages/modules/WebApp:__subpackages__",
+    ],
+}

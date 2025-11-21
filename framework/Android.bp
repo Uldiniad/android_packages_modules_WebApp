@@ -31,3 +31,28 @@ aidl_interface {
         },
     },
 }
+
+java_sdk_library {
+    name: "framework-webapp",
+    srcs: [
+        "java/**/*.java",
+    ],
+    static_libs: [
+        "framework-webapp-aidl-java",
+    ],
+    libs: [
+        "com.android.webapp.flags-aconfig-exported-java",
+        "framework-annotations-lib",
+    ],
+    defaults: ["framework-module-defaults"],
+    permitted_packages: [
+        "android.content.pm.webapp",
+        "com.android.webapp",
+    ],
+    sdk_version: "module_current",
+    min_sdk_version: "36",
+    apex_available: ["com.android.webapp"],
+    aconfig_declarations: [
+        "com.android.webapp.flags-aconfig",
+    ],
+}

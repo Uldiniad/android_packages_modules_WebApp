@@ -28,7 +28,7 @@ data class InstallRequest(
     val callingPackage: String,
     val manifestUrl: String,
     val appName: String,
-    val callback: IWebAppInstallCallback,
+    val callback: IWebAppInstallCallback?,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

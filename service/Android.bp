@@ -41,9 +41,9 @@ android_app {
     kotlin_plugins: [
         "kotlin-serialize-compiler-plugin",
     ],
-
     libs: [
         "framework-annotations-lib",
+        "framework-webapp.stubs.module_lib",
     ],
 
     flags_packages: ["com.android.webapp.flags-aconfig"],
