@@ -16,4 +16,10 @@
 
 package com.android.webapp.service.minter
 
-data class ApkInfo(val appName: String, val packageName: String)
+data class ApkInfo(
+    val appName: String,
+    val packageName: String,
+    val manifestUrl: String,
+    val startUrl: String,
+    val hostName: String,
+)

@@ -18,21 +18,25 @@ package {
 
 android_app {
     name: "WebAppTemplate",
-    srcs: ["java/**/*"],
     resource_dirs: ["res"],
     manifest: "AndroidManifest.xml",
 
     sdk_version: "module_current",
     min_sdk_version: "36",
 
+    static_libs: [
+        "android-browser-helper",
+    ],
+
     // We need res IDs file to have stable resource IDs for the minted APK.
     emit_res_ids: true,
 
-    optimize: {
-        enabled: true,
-        shrink: true,
-        shrink_resources: true,
-    },
+    // TODO(b/462577557): Re-enable optimizations after investigating build crashes.
+    // optimize: {
+    //    enabled: true,
+    //    shrink: true,
+    //    shrink_resources: true,
+    //},
 
     licenses: [
         "Android-Apache-2.0",
@@ -46,7 +50,8 @@ genrule {
 
     // The srcs order must be kept in sync with webapp-template-builder.py.
     device_common_srcs: [
-        "AndroidManifest.xml",
+        "AndroidManifest.xml.mustache",
+        // This comment prevents bpfmt from sorting the files incorrectly.
         ":WebAppTemplate",
         ":WebAppTemplate{.res-ids.txt}",
         "res/**/*",

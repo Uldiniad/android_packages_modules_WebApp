@@ -26,7 +26,7 @@ def print_usage_and_exit():
     print(f'''
 Expected args in order:
 1. webapp-template.zip: The output zip template bundle
-2. AndroidManifest.xml: The AndroidManifest.xml template
+2. AndroidManifest.xml.mustache: The AndroidManifest.xml Mustache template
 3. WebAppTemplate.apk: The template APK containing classes.dex
 4. res-ids.txt: The stable resource IDs file
 5+. res/...: One or more resource files
@@ -44,8 +44,8 @@ def main():
         print_usage_and_exit()
 
     android_manifest = sys.argv[2]
-    if os.path.basename(android_manifest) != 'AndroidManifest.xml':
-        print(f'Arg 2 must be AndroidManifest.xml, but is {android_manifest}', file=sys.stderr)
+    if os.path.basename(android_manifest) != 'AndroidManifest.xml.mustache':
+        print(f'Arg 2 must be AndroidManifest.xml.mustache, but is {android_manifest}', file=sys.stderr)
         print_usage_and_exit()
 
     template_apk = sys.argv[3]
@@ -65,8 +65,8 @@ def main():
             print_usage_and_exit()
 
     with zipfile.ZipFile(out_zip, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as out:
-        # 1. AndroidManifest.xml template
-        out.write(android_manifest, 'AndroidManifest.xml')
+        # 1. AndroidManifest.xml Mustache template
+        out.write(android_manifest, 'AndroidManifest.xml.mustache')
 
         # 2. res-ids.txt for stable resource IDs
         out.write(res_ids, 'res-ids.txt')

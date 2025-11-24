@@ -23,6 +23,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageInstaller
 import android.content.pm.PackageManager
 import android.util.Log
+import android.webkit.URLUtil
 import com.android.webapp.service.minter.ApkInfo
 import com.android.webapp.service.minter.ApkKeyStore
 import com.android.webapp.service.minter.ApkMinter
@@ -31,8 +32,11 @@ import com.android.webapp.service.model.PwaManifest
 import java.io.File
 import java.io.FileInputStream
 import java.net.HttpURLConnection
+import java.net.URI
 import java.net.URL
-import kotlin.random.Random
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import kotlin.math.min
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -91,6 +95,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
     private suspend fun performInstall(request: InstallRequest) {
         Log.i(TAG, "Start installing $request")
 
+        // TODO(b/448503528): Parse manifest properly
         val manifest =
             fetchAndParseManifest(request.manifestUrl)
                 ?: run {
@@ -99,13 +104,11 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                     request.callback.onInstallResult(1)
                     return
                 }
-        val appName = manifest.shortName ?: manifest.name ?: request.appName
+        val apkInfo = generateApkInfo(request, manifest)
+        val packageName = apkInfo.packageName
 
-        // TODO(b/448503528): Parse manifest
         // TODO: Await user confirmation
 
-        val packageName = generatePackageName()
-        val apkInfo = ApkInfo(appName, packageName)
         val workingDir = File(context.cacheDir, packageName)
         try {
             if (workingDir.exists() && !workingDir.deleteRecursively()) {
@@ -231,9 +234,30 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         }
     }
 
-    private fun generatePackageName(): String {
-        // TODO(b/430234914): Generate predictable app ID
-        return "webapp.id${Random.nextLong(Long.MAX_VALUE)}"
+    private fun generateApkInfo(request: InstallRequest, manifest: PwaManifest): ApkInfo {
+        val appName = manifest.shortName ?: manifest.name ?: request.appName
+        val manifestUri = URI(request.manifestUrl)
+        var startUrl = manifest.startUrl ?: "/"
+        if (!URLUtil.isNetworkUrl(startUrl)) {
+            startUrl = "${manifestUri.scheme}://${manifestUri.host}${startUrl}"
+        }
+        return ApkInfo(
+            appName,
+            generatePackageName(request.callingPackage, request.manifestUrl),
+            request.manifestUrl,
+            startUrl,
+            manifestUri.host,
+        )
+    }
+
+    // TODO(b/448503528): Use origin and manifest ID after parsing the manifest
+    private fun generatePackageName(callingPackage: String, manifestUrl: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hashBytes =
+            digest.digest((callingPackage + manifestUrl).toByteArray(StandardCharsets.UTF_8))
+        val hexString = hashBytes.joinToString("") { "%02x".format(it) }
+        val prefixedString = PACKAGE_NAME_PREFIX + hexString
+        return prefixedString.substring(0, min(prefixedString.length, PACKAGE_NAME_MAX_LENGTH))
     }
 
     suspend fun verifyPackage(packageName: String): Int {
@@ -241,6 +265,8 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
     }
 
     companion object {
+        private const val PACKAGE_NAME_PREFIX = "com.android.webapp"
+        private const val PACKAGE_NAME_MAX_LENGTH = 150
         private const val TAG = "WebAppInstaller"
         private const val MAX_QUEUE_LENGTH = 1000
         private const val PACKAGE_MANAGER_TIMEOUT_SECONDS = 600L

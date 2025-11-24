@@ -17,6 +17,8 @@
 package com.android.webapp.service.minter
 
 import android.util.Log
+import com.samskivert.mustache.Mustache
+import com.samskivert.mustache.MustacheException
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -33,16 +35,18 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
                 ?: run {
                     return null
                 }
-        if (!modifyTemplate(unpackedTemplateDir)) {
-            return null
-        }
+        val manifestFile =
+            modifyTemplate(unpackedTemplateDir)
+                ?: run {
+                    return null
+                }
         val flatResDir =
             compileResources(unpackedTemplateDir)
                 ?: run {
                     return null
                 }
         val unsignedApkFile =
-            linkApk(unpackedTemplateDir, flatResDir)
+            linkApk(unpackedTemplateDir, flatResDir, manifestFile)
                 ?: run {
                     return null
                 }
@@ -94,21 +98,30 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
         }
     }
 
-    private fun modifyTemplate(unpackedTemplateDir: File): Boolean {
+    private fun modifyTemplate(unpackedTemplateDir: File): File? {
+        val manifestTemplateFile = File(unpackedTemplateDir, "AndroidManifest.xml.mustache")
         val manifestFile = File(unpackedTemplateDir, "AndroidManifest.xml")
-        // TODO: Use template engine instead of string find and replace
         try {
+            val template = Mustache.compiler().compile(manifestTemplateFile.reader())
             val manifestContent =
-                manifestFile
-                    .readText()
-                    .replace("com.android.webapp.template", apkInfo.packageName)
-                    .replace("@string/app_name", apkInfo.appName)
-                    .replace("WebAppTemplate", apkInfo.appName)
+                template.execute(
+                    mapOf(
+                        "package_name" to apkInfo.packageName,
+                        "app_name" to apkInfo.appName,
+                        "manifest_url" to apkInfo.manifestUrl,
+                        "start_url" to apkInfo.startUrl,
+                        "host_name" to apkInfo.hostName,
+                        "sdk_version" to APK_SDK_VERSION,
+                    )
+                )
 
             manifestFile.writeText(manifestContent)
         } catch (e: IOException) {
-            Log.e(TAG, "Failed to modify AndroidManifest.xml", e)
-            return false
+            Log.e(TAG, "Failed to read AndroidManifest.xml", e)
+            return null
+        } catch (e: MustacheException) {
+            Log.e(TAG, "Failed to execute template for AndroidManifest.xml", e)
+            return null
         }
 
         val stableIdsFile = File(unpackedTemplateDir, "res-ids.txt")
@@ -118,11 +131,11 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
             stableIdsFile.writeText(resIdsContent)
         } catch (e: IOException) {
             Log.e(TAG, "Failed to modify res-ids.txt", e)
-            return false
+            return null
         }
 
         // TODO(b/447493504): Modify app icon
-        return true
+        return manifestFile
     }
 
     private fun compileResources(unpackedTemplateDir: File): File? {
@@ -155,8 +168,7 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
         }
     }
 
-    private fun linkApk(unpackedTemplateDir: File, flatResDir: File): File? {
-        val manifestFile = File(unpackedTemplateDir, "AndroidManifest.xml")
+    private fun linkApk(unpackedTemplateDir: File, flatResDir: File, manifestFile: File): File? {
         val classesDexFile = File(unpackedTemplateDir, "classes.dex")
         val stableIdsFile = File(unpackedTemplateDir, "res-ids.txt")
         val frameworkResFile = File("/system/framework/framework-res.apk")
@@ -233,5 +245,6 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
         private const val TAG = "ApkMinter"
         private const val TEMPLATE_FILE = "/apex/com.android.webapp/res/webapp-template.zip"
         private const val AAPT2_EXEC = "/apex/com.android.webapp/bin/aapt2"
+        private const val APK_SDK_VERSION = "36"
     }
 }

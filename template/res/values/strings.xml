@@ -15,5 +15,5 @@
 -->
 
 <resources>
-    <string name="app_name">WebAppTemplate</string>
+    <string name="androidx_startup">androidx.startup</string>
 </resources>

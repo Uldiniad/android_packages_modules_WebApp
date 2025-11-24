@@ -56,10 +56,7 @@ class ApkKeyStore {
         }
     }
 
-    /**
-     * Generates a new self-signed RSA key pair and saves it in AndroidKeyStore backed by StrongBox
-     * security chip.
-     */
+    /** Generates a new self-signed RSA key pair and saves it in AndroidKeyStore. */
     private fun generateKeyAndCertificate() {
         val generator =
             KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore")
@@ -81,7 +78,6 @@ class ApkKeyStore {
                 .setKeyValidityEnd(notAfter)
                 .setDigests(KeyProperties.DIGEST_SHA256)
                 .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
-                .setIsStrongBoxBacked(true) // Backed by StrongBox security chip
                 .build()
 
         generator.initialize(parameterSpec)
