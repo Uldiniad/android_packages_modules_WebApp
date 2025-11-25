@@ -237,16 +237,17 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
     private fun generateApkInfo(request: InstallRequest, manifest: PwaManifest): ApkInfo {
         val appName = manifest.shortName ?: manifest.name ?: request.appName
         val manifestUri = URI(request.manifestUrl)
-        var startUrl = manifest.startUrl ?: "/"
+        var startUrl = manifest.startUrl ?: DEFAULT_START_URL
         if (!URLUtil.isNetworkUrl(startUrl)) {
             startUrl = "${manifestUri.scheme}://${manifestUri.host}${startUrl}"
         }
         return ApkInfo(
-            appName,
-            generatePackageName(request.callingPackage, request.manifestUrl),
-            request.manifestUrl,
-            startUrl,
-            manifestUri.host,
+            appName = appName,
+            packageName = generatePackageName(request.callingPackage, request.manifestUrl),
+            manifestUrl = request.manifestUrl,
+            startUrl = startUrl,
+            hostName = manifestUri.host,
+            sdkVersion = APK_SDK_VERSION,
         )
     }
 
@@ -265,6 +266,8 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
     }
 
     companion object {
+        private const val APK_SDK_VERSION = "36"
+        private const val DEFAULT_START_URL = "/"
         private const val PACKAGE_NAME_PREFIX = "com.android.webapp"
         private const val PACKAGE_NAME_MAX_LENGTH = 150
         private const val TAG = "WebAppInstaller"

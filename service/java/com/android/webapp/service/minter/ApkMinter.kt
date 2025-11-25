@@ -103,19 +103,7 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
         val manifestFile = File(unpackedTemplateDir, "AndroidManifest.xml")
         try {
             val template = Mustache.compiler().compile(manifestTemplateFile.reader())
-            val manifestContent =
-                template.execute(
-                    mapOf(
-                        "package_name" to apkInfo.packageName,
-                        "app_name" to apkInfo.appName,
-                        "manifest_url" to apkInfo.manifestUrl,
-                        "start_url" to apkInfo.startUrl,
-                        "host_name" to apkInfo.hostName,
-                        "sdk_version" to APK_SDK_VERSION,
-                    )
-                )
-
-            manifestFile.writeText(manifestContent)
+            manifestFile.writeText(template.execute(apkInfo))
         } catch (e: IOException) {
             Log.e(TAG, "Failed to read AndroidManifest.xml", e)
             return null
@@ -245,6 +233,5 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
         private const val TAG = "ApkMinter"
         private const val TEMPLATE_FILE = "/apex/com.android.webapp/res/webapp-template.zip"
         private const val AAPT2_EXEC = "/apex/com.android.webapp/bin/aapt2"
-        private const val APK_SDK_VERSION = "36"
     }
 }

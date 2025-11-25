@@ -19,9 +19,9 @@
 <!-- This manifest template file is used as the on-device template. -->
 <manifest
         xmlns:android="http://schemas.android.com/apk/res/android"
-        package="{{package_name}}">
+        package="{{packageName}}">
 
-    <uses-sdk android:minSdkVersion="{{sdk_version}}" android:targetSdkVersion="{{sdk_version}}" />
+    <uses-sdk android:minSdkVersion="{{sdkVersion}}" android:targetSdkVersion="{{sdkVersion}}" />
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <queries>
@@ -32,30 +32,30 @@
         </intent>
     </queries>
 
-    <permission android:name="{{package_name}}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" android:protectionLevel="signature"/>
-    <uses-permission android:name="{{package_name}}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
+    <permission android:name="{{packageName}}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" android:protectionLevel="signature"/>
+    <uses-permission android:name="{{packageName}}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
     <application
             android:allowBackup="false"
             android:appComponentFactory="androidx.core.app.CoreComponentFactory"
             android:extractNativeLibs="true"
-            android:label="{{app_name}}"
+            android:label="{{appName}}"
             android:manageSpaceActivity="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
             android:name="android.app.Application"
             android:supportsRtl="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:usesNonSdkApi="true">
-        <meta-data android:name="web_manifest_url" android:value="{{manifest_url}}"/>
+        <meta-data android:name="web_manifest_url" android:value="{{manifestUrl}}"/>
         <activity android:name="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity">
-            <meta-data android:name="android.support.customtabs.trusted.MANAGE_SPACE_URL" android:value="{{start_url}}"/>
+            <meta-data android:name="android.support.customtabs.trusted.MANAGE_SPACE_URL" android:value="{{startUrl}}"/>
         </activity>
-        <activity android:alwaysRetainTaskState="true" android:exported="true" android:label="{{app_name}}" android:name="com.google.androidbrowserhelper.trusted.LauncherActivity">
-            <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL" android:value="{{start_url}}"/>
+        <activity android:alwaysRetainTaskState="true" android:exported="true" android:label="{{appName}}" android:name="com.google.androidbrowserhelper.trusted.LauncherActivity">
+            <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL" android:value="{{startUrl}}"/>
             <meta-data android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR" android:resource="@color/colorPrimary"/>
             <meta-data android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR_DARK" android:resource="@color/colorPrimaryDark"/>
             <meta-data android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR" android:resource="@color/navigationColor"/>
             <meta-data android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR_DARK" android:resource="@color/navigationColorDark"/>
             <meta-data android:name="android.support.customtabs.trusted.SPLASH_SCREEN_BACKGROUND_COLOR" android:resource="@color/backgroundColor"/>
-            <meta-data android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY" android:value="{{package_name}}.fileprovider"/>
+            <meta-data android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY" android:value="{{packageName}}.fileprovider"/>
             <meta-data android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY" android:value="customtabs"/>
             <meta-data android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION" android:value="default"/>
             <intent-filter>
@@ -67,13 +67,13 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https"/>
-                <data android:host="{{host_name}}"/>
+                <data android:host="{{hostName}}"/>
                 <data android:pathPrefix="/" />
             </intent-filter>
         </activity>
         <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity"/>
         <activity android:configChanges="orientation|screenSize" android:name="com.google.androidbrowserhelper.trusted.WebViewFallbackActivity"/>
-        <provider android:authorities="{{package_name}}.fileprovider" android:exported="false" android:grantUriPermissions="true" android:name="androidx.core.content.FileProvider">
+        <provider android:authorities="{{packageName}}.fileprovider" android:exported="false" android:grantUriPermissions="true" android:name="androidx.core.content.FileProvider">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/filepaths"/>
         </provider>
         <service android:enabled="true" android:exported="true" android:name="com.google.androidbrowserhelper.trusted.DelegationService">
@@ -83,7 +83,7 @@
             </intent-filter>
         </service>
         <activity android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity"/>
-        <provider android:authorities="{{package_name}}.androidx-startup" android:exported="false" android:name="androidx.startup.InitializationProvider">
+        <provider android:authorities="{{packageName}}.androidx-startup" android:exported="false" android:name="androidx.startup.InitializationProvider">
             <meta-data android:name="androidx.lifecycle.ProcessLifecycleInitializer" android:value="androidx.startup"/>
         </provider>
         <receiver
