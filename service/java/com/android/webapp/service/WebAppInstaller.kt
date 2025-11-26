@@ -235,12 +235,30 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
     }
 
     private fun generateApkInfo(request: InstallRequest, manifest: PwaManifest): ApkInfo {
-        val appName = manifest.shortName ?: manifest.name ?: request.appName
+        val appName =
+            manifest.shortName
+                ?: manifest.name
+                ?: run {
+                    Log.i(TAG, "Using fallback appName: ${request.appName}")
+                    request.appName
+                }
         val manifestUri = URI(request.manifestUrl)
-        var startUrl = manifest.startUrl ?: DEFAULT_START_URL
+        var startUrl =
+            manifest.startUrl
+                ?: run {
+                    Log.i(TAG, "Using fallback startUrl: $DEFAULT_START_URL")
+                    DEFAULT_START_URL
+                }
         if (!URLUtil.isNetworkUrl(startUrl)) {
             startUrl = "${manifestUri.scheme}://${manifestUri.host}${startUrl}"
         }
+        val displayMode =
+            manifest.display
+                ?: run {
+                    Log.i(TAG, "Using fallback displayMode: $DEFAULT_DISPLAY_MODE")
+                    DEFAULT_DISPLAY_MODE
+                }
+
         return ApkInfo(
             appName = appName,
             packageName = generatePackageName(request.callingPackage, request.manifestUrl),
@@ -248,6 +266,10 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
             startUrl = startUrl,
             hostName = manifestUri.host,
             sdkVersion = APK_SDK_VERSION,
+            displayModeFullscreen = displayMode == "fullscreen",
+            displayModeFullscreenSticky = displayMode == "fullscreen-sticky",
+            displayModeMinimalUi = displayMode == "minimal-ui",
+            displayModeBrowser = displayMode == "browser",
         )
     }
 
@@ -267,6 +289,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
 
     companion object {
         private const val APK_SDK_VERSION = "36"
+        private const val DEFAULT_DISPLAY_MODE = "standalone"
         private const val DEFAULT_START_URL = "/"
         private const val PACKAGE_NAME_PREFIX = "com.android.webapp"
         private const val PACKAGE_NAME_MAX_LENGTH = 150
