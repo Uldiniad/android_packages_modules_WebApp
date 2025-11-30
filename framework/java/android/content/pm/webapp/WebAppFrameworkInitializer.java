@@ -40,6 +40,6 @@ public class WebAppFrameworkInitializer {
      */
     public static void registerServiceWrappers() {
         SystemServiceRegistry.registerContextAwareService(
-                WebAppManager.SERVICE_NAME, WebAppManager.class, WebAppManager::new);
+                Context.WEB_APP_SERVICE, WebAppManager.class, WebAppManager::new);
     }
 }
