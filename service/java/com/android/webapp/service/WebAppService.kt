@@ -18,13 +18,15 @@ package com.android.webapp.service
 
 import android.annotation.PermissionManuallyEnforced
 import android.content.Intent
+import android.content.pm.webapp.WebAppInstallRequest
+import android.content.pm.webapp.WebAppQueryRequest
 import android.os.IBinder
 import android.util.Log
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.android.webapp.IWebAppInstallCallback
+import com.android.webapp.IWebAppQueryCallback
 import com.android.webapp.IWebAppService
-import com.android.webapp.IWebAppVerifyCallback
 import com.android.webapp.service.model.InstallRequest
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
@@ -43,7 +45,7 @@ class WebAppService : LifecycleService() {
             override fun install(
                 title: String,
                 manifestUrl: String,
-                callback: IWebAppInstallCallback,
+                callback: IWebAppInstallCallback?,
             ) {
                 val callingUid = getCallingUid()
                 val pm = applicationContext.packageManager
@@ -56,8 +58,10 @@ class WebAppService : LifecycleService() {
                                 TAG,
                                 "Calling UID $callingUid does not map to a single package: $callingPackages",
                             )
-                            // TODO: Replace with actual error code after SDK interface is available
-                            callback.onInstallResult(1)
+                            callback?.onInstallResult(
+                                WebAppInstallRequest.RESULT_INVALID_ARGUMENTS,
+                                null,
+                            )
                             return
                         }
                 Log.d(TAG, "Calling UID: $callingUid Package: $callingPackage")
@@ -73,35 +77,36 @@ class WebAppService : LifecycleService() {
                         }
                             ?: run {
                                 Log.e(TAG, "Timed out enqueuing install request $request")
-                                // TODO: Replace with actual error code after SDK interface is
-                                // available
-                                callback.onInstallResult(1)
+                                callback?.onInstallResult(
+                                    WebAppInstallRequest.RESULT_INTERNAL_ERROR,
+                                    null,
+                                )
                                 return@launch
                             }
 
                     if (!result) {
-                        // TODO: Replace with actual error code after SDK interface is available
-                        callback.onInstallResult(1)
+                        callback?.onInstallResult(
+                            WebAppInstallRequest.RESULT_DUPLICATED_REQUEST,
+                            null,
+                        )
                     }
                 }
             }
 
             @PermissionManuallyEnforced
-            override fun verifyPackage(packageName: String, callback: IWebAppVerifyCallback) {
+            override fun queryPackage(packageName: String, callback: IWebAppQueryCallback) {
                 // TODO: Caller verification
                 lifecycleScope.launch {
                     val result =
-                        withTimeoutOrNull(PACKAGE_VERIFY_TIMEOUT_SECONDS.seconds) {
-                            installer.verifyPackage(packageName)
+                        withTimeoutOrNull(PACKAGE_QUERY_TIMEOUT_SECONDS.seconds) {
+                            installer.queryPackage(packageName)
                         }
                             ?: run {
-                                Log.e(TAG, "Timed out verifying package $packageName")
-                                // TODO: Replace with actual error code after SDK interface is
-                                // available
-                                callback.onVerifyResult(1)
+                                Log.e(TAG, "Timed out querying package $packageName")
+                                callback.onQueryResult(WebAppQueryRequest.RESULT_INTERNAL_ERROR)
                                 return@launch
                             }
-                    callback.onVerifyResult(result)
+                    callback.onQueryResult(result)
                 }
             }
         }
@@ -126,6 +131,6 @@ class WebAppService : LifecycleService() {
     companion object {
         private const val TAG = "WebAppService"
         private const val INSTALL_ENQUEUE_TIMEOUT_SECONDS = 10
-        private const val PACKAGE_VERIFY_TIMEOUT_SECONDS = 10
+        private const val PACKAGE_QUERY_TIMEOUT_SECONDS = 10
     }
 }

@@ -22,4 +22,9 @@ data class ApkInfo(
     val manifestUrl: String,
     val startUrl: String,
     val hostName: String,
+    val sdkVersion: String,
+    val displayModeFullscreen: Boolean,
+    val displayModeFullscreenSticky: Boolean,
+    val displayModeMinimalUi: Boolean,
+    val displayModeBrowser: Boolean,
 )

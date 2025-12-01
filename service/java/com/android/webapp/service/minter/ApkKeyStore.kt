@@ -17,6 +17,7 @@
 package com.android.webapp.service.minter
 
 import android.content.pm.PackageManager
+import android.content.pm.webapp.WebAppQueryRequest
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Log
@@ -119,20 +120,18 @@ class ApkKeyStore {
         }
     }
 
-    suspend fun verifyPackage(packageManager: PackageManager, packageName: String): Int {
+    suspend fun queryPackage(packageManager: PackageManager, packageName: String): Int {
         val expectedEntry =
             getKeyEntry()
                 ?: run {
                     Log.e(TAG, "Failed to get expected PrivateKeyEntry from keystore.")
-                    // TODO: Replace with actual error code after SDK interface is available
-                    return 1
+                    return WebAppQueryRequest.RESULT_INTERNAL_ERROR
                 }
         val expectedCert =
             expectedEntry.certificateChain.firstOrNull()
                 ?: run {
                     Log.e(TAG, "Expected certificate chain is empty.")
-                    // TODO: Replace with actual error code after SDK interface is available
-                    return 1
+                    return WebAppQueryRequest.RESULT_INTERNAL_ERROR
                 }
 
         return try {
@@ -142,31 +141,26 @@ class ApkKeyStore {
                 packageInfo.signingInfo
                     ?: run {
                         Log.e(TAG, "Failed to get singing info for $packageName")
-                        // TODO: Replace with actual error code after SDK interface is available
-                        return 1
+                        return WebAppQueryRequest.RESULT_INTERNAL_ERROR
                     }
             val signers =
                 signingInfo.apkContentsSigners
                     ?: signingInfo.signingCertificateHistory
                     ?: run {
                         Log.e(TAG, "Failed to get signers for $packageName")
-                        // TODO: Replace with actual error code after SDK interface is available
-                        return 1
+                        return WebAppQueryRequest.RESULT_INTERNAL_ERROR
                     }
             val matches =
                 signers.any { signature ->
                     signature.toByteArray().contentEquals(expectedCert.encoded)
                 }
-            // TODO: Replace with actual error code after SDK interface is available
-            if (matches) 0 else 1
+            if (matches) WebAppQueryRequest.RESULT_EXISTS else WebAppQueryRequest.RESULT_NOT_EXISTS
         } catch (e: PackageManager.NameNotFoundException) {
             Log.w(TAG, "Target package '$packageName' not found or not visible.", e)
-            // TODO: Replace with actual error code after SDK interface is available
-            1
+            WebAppQueryRequest.RESULT_NOT_EXISTS
         } catch (e: Exception) {
             Log.e(TAG, "Error verifying package signature for $packageName", e)
-            // TODO: Replace with actual error code after SDK interface is available
-            1
+            WebAppQueryRequest.RESULT_INTERNAL_ERROR
         }
     }
 

@@ -22,6 +22,7 @@ import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageInstaller
 import android.content.pm.PackageManager
+import android.content.pm.webapp.WebAppInstallRequest
 import android.util.Log
 import android.webkit.URLUtil
 import com.android.webapp.service.minter.ApkInfo
@@ -100,8 +101,10 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
             fetchAndParseManifest(request.manifestUrl)
                 ?: run {
                     Log.e(TAG, "Failed to fetch and parse manifest")
-                    // TODO: Replace with actual error code after SDK interface is available
-                    request.callback.onInstallResult(1)
+                    request.callback?.onInstallResult(
+                        WebAppInstallRequest.RESULT_NETWORK_ERROR,
+                        null,
+                    )
                     return
                 }
         val apkInfo = generateApkInfo(request, manifest)
@@ -113,14 +116,12 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         try {
             if (workingDir.exists() && !workingDir.deleteRecursively()) {
                 Log.e(TAG, "Failed to delete existing working directory")
-                // TODO: Replace with actual error code after SDK interface is available
-                request.callback.onInstallResult(1)
+                request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 return
             }
             if (!workingDir.mkdirs()) {
                 Log.e(TAG, "Failed to create working directory")
-                // TODO: Replace with actual error code after SDK interface is available
-                request.callback.onInstallResult(1)
+                request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 return
             }
 
@@ -128,8 +129,10 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                 ApkMinter(keyStore, workingDir, apkInfo).mintApk()
                     ?: run {
                         Log.e(TAG, "Failed to mint APK")
-                        // TODO: Replace with actual error code after SDK interface is available
-                        request.callback.onInstallResult(1)
+                        request.callback?.onInstallResult(
+                            WebAppInstallRequest.RESULT_INTERNAL_ERROR,
+                            null,
+                        )
                         return
                     }
 
@@ -140,21 +143,21 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                 }
                     ?: run {
                         Log.e(TAG, "Timed out waiting for package manager to install $packageName")
-                        // TODO: Replace with actual error code after SDK interface is available
-                        request.callback.onInstallResult(1)
+                        request.callback?.onInstallResult(
+                            WebAppInstallRequest.RESULT_INTERNAL_ERROR,
+                            null,
+                        )
                         return
                     }
 
             if (installResult != PackageInstaller.STATUS_SUCCESS) {
                 Log.e(TAG, "Failed to install APK: $installResult")
-                // TODO: Replace with actual error code after SDK interface is available
-                request.callback.onInstallResult(1)
+                request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 return
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to mint and install APK", e)
-            // TODO: Replace with actual error code after SDK interface is available
-            request.callback.onInstallResult(1)
+            request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
             return
         } finally {
             if (!workingDir.deleteRecursively()) {
@@ -163,8 +166,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         }
 
         Log.i(TAG, "Successfully installed $packageName for $request")
-        // TODO: Replace with actual error code after SDK interface is available
-        request.callback.onInstallResult(0)
+        request.callback?.onInstallResult(WebAppInstallRequest.RESULT_SUCCESS, packageName)
         return
     }
 
@@ -205,8 +207,9 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                 setSize(apkFile.length())
                 setInstallLocation(PackageInfo.INSTALL_LOCATION_AUTO)
                 setInstallReason(PackageManager.INSTALL_REASON_USER)
+                setPackageSource(PackageInstaller.PACKAGE_SOURCE_LOCAL_FILE)
                 // Attribute the installation to the calling app.
-                setPackageSource(request.callingUid)
+                setOriginatingUid(request.callingUid)
             }
 
         val sessionId = packageInstaller.createSession(params)
@@ -235,18 +238,41 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
     }
 
     private fun generateApkInfo(request: InstallRequest, manifest: PwaManifest): ApkInfo {
-        val appName = manifest.shortName ?: manifest.name ?: request.appName
+        val appName =
+            manifest.shortName
+                ?: manifest.name
+                ?: run {
+                    Log.i(TAG, "Using fallback appName: ${request.appName}")
+                    request.appName
+                }
         val manifestUri = URI(request.manifestUrl)
-        var startUrl = manifest.startUrl ?: "/"
+        var startUrl =
+            manifest.startUrl
+                ?: run {
+                    Log.i(TAG, "Using fallback startUrl: $DEFAULT_START_URL")
+                    DEFAULT_START_URL
+                }
         if (!URLUtil.isNetworkUrl(startUrl)) {
             startUrl = "${manifestUri.scheme}://${manifestUri.host}${startUrl}"
         }
+        val displayMode =
+            manifest.display
+                ?: run {
+                    Log.i(TAG, "Using fallback displayMode: $DEFAULT_DISPLAY_MODE")
+                    DEFAULT_DISPLAY_MODE
+                }
+
         return ApkInfo(
-            appName,
-            generatePackageName(request.callingPackage, request.manifestUrl),
-            request.manifestUrl,
-            startUrl,
-            manifestUri.host,
+            appName = appName,
+            packageName = generatePackageName(request.callingPackage, request.manifestUrl),
+            manifestUrl = request.manifestUrl,
+            startUrl = startUrl,
+            hostName = manifestUri.host,
+            sdkVersion = APK_SDK_VERSION,
+            displayModeFullscreen = displayMode == "fullscreen",
+            displayModeFullscreenSticky = displayMode == "fullscreen-sticky",
+            displayModeMinimalUi = displayMode == "minimal-ui",
+            displayModeBrowser = displayMode == "browser",
         )
     }
 
@@ -260,11 +286,14 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         return prefixedString.substring(0, min(prefixedString.length, PACKAGE_NAME_MAX_LENGTH))
     }
 
-    suspend fun verifyPackage(packageName: String): Int {
-        return keyStore.verifyPackage(context.packageManager, packageName)
+    suspend fun queryPackage(packageName: String): Int {
+        return keyStore.queryPackage(context.packageManager, packageName)
     }
 
     companion object {
+        private const val APK_SDK_VERSION = "36"
+        private const val DEFAULT_DISPLAY_MODE = "standalone"
+        private const val DEFAULT_START_URL = "/"
         private const val PACKAGE_NAME_PREFIX = "com.android.webapp"
         private const val PACKAGE_NAME_MAX_LENGTH = 150
         private const val TAG = "WebAppInstaller"
