@@ -17,6 +17,11 @@ package {
 }
 
 aconfig_declarations {
+    enabled: select(release_flag("RELEASE_WEBAPP_MODULE"), {
+        true: true,
+        false: false,
+    }),
+
     name: "com.android.webapp.flags-aconfig",
     package: "com.android.webapp.flags",
     container: "com.android.webapp",
@@ -25,6 +30,11 @@ aconfig_declarations {
 }
 
 java_aconfig_library {
+    enabled: select(release_flag("RELEASE_WEBAPP_MODULE"), {
+        true: true,
+        false: false,
+    }),
+
     name: "com.android.webapp.flags-aconfig-java",
     aconfig_declarations: "com.android.webapp.flags-aconfig",
     defaults: ["framework-minus-apex-aconfig-java-defaults"],
@@ -38,6 +48,12 @@ java_aconfig_library {
 }
 
 java_aconfig_library {
+    // This mainline SDK will be enabled using RELEASE_WEBAPP_MODULE flag
+    enabled: select(release_flag("RELEASE_WEBAPP_MODULE"), {
+        true: true,
+        false: false,
+    }),
+
     name: "com.android.webapp.flags-aconfig-exported-java",
     aconfig_declarations: "com.android.webapp.flags-aconfig",
     defaults: ["framework-minus-apex-aconfig-java-defaults"],

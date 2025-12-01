@@ -33,6 +33,12 @@ aidl_interface {
 }
 
 java_sdk_library {
+    // This mainline SDK will be enabled using RELEASE_WEBAPP_MODULE flag
+    enabled: select(release_flag("RELEASE_WEBAPP_MODULE"), {
+        true: true,
+        false: false,
+    }),
+
     name: "framework-webapp",
     srcs: [
         "java/**/*.java",
