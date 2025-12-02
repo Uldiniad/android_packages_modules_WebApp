@@ -51,6 +51,7 @@ genrule {
     // The srcs order must be kept in sync with webapp-template-builder.py.
     device_common_srcs: [
         "AndroidManifest.xml.mustache",
+        "colors.xml.mustache",
         // This comment prevents bpfmt from sorting the files incorrectly.
         ":WebAppTemplate",
         ":WebAppTemplate{.res-ids.txt}",

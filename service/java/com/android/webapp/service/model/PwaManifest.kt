@@ -33,4 +33,10 @@ data class PwaManifest(
     @SerialName("short_name") val shortName: String? = null,
     @SerialName("start_url") val startUrl: String? = null,
     @SerialName("display") val display: String? = null,
+    @SerialName("background_color") val backgroundColor: String? = null,
+    @SerialName("theme_color") val themeColor: String? = null,
+    @SerialName("theme_color_dark") val themeColorDark: String? = null,
+    @SerialName("navigation_color") val navigationColor: String? = null,
+    @SerialName("navigation_color_dark") val navigationColorDark: String? = null,
+    @SerialName("orientation") val orientation: String? = null,
 )
