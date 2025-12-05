@@ -16,17 +16,9 @@ package: "com.android.webapp.flags"
 container: "com.android.webapp"
 
 flag {
-    name: "enable_web_app_service"
-    namespace: "lse_desktop_experience"
-    description: "Enables the Web App Installer system service and SDK APIs."
-    is_exported: true
-    bug: "432147348"
-}
-
-flag {
     name: "enable_web_app_service_v2"
     namespace: "lse_desktop_experience"
     description: "Enables the Web App Installer system service and SDK APIs."
-    is_exported: false
+    is_exported: true
     bug: "432147348"
 }

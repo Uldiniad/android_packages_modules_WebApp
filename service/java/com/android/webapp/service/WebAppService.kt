@@ -45,7 +45,7 @@ class WebAppService : LifecycleService() {
             override fun install(
                 title: String,
                 manifestUrl: String,
-                callback: IWebAppInstallCallback?,
+                callback: IWebAppInstallCallback,
             ) {
                 val callingUid = getCallingUid()
                 val pm = applicationContext.packageManager
@@ -58,7 +58,7 @@ class WebAppService : LifecycleService() {
                                 TAG,
                                 "Calling UID $callingUid does not map to a single package: $callingPackages",
                             )
-                            callback?.onInstallResult(
+                            callback.onInstallResult(
                                 WebAppInstallRequest.RESULT_INVALID_ARGUMENTS,
                                 null,
                             )
@@ -77,7 +77,7 @@ class WebAppService : LifecycleService() {
                         }
                             ?: run {
                                 Log.e(TAG, "Timed out enqueuing install request $request")
-                                callback?.onInstallResult(
+                                callback.onInstallResult(
                                     WebAppInstallRequest.RESULT_INTERNAL_ERROR,
                                     null,
                                 )
@@ -85,7 +85,7 @@ class WebAppService : LifecycleService() {
                             }
 
                     if (!result) {
-                        callback?.onInstallResult(
+                        callback.onInstallResult(
                             WebAppInstallRequest.RESULT_DUPLICATED_REQUEST,
                             null,
                         )

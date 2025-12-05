@@ -101,7 +101,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
             fetchAndParseManifest(request.manifestUrl)
                 ?: run {
                     Log.e(TAG, "Failed to fetch and parse manifest")
-                    request.callback?.onInstallResult(
+                    request.callback.onInstallResult(
                         WebAppInstallRequest.RESULT_NETWORK_ERROR,
                         null,
                     )
@@ -116,12 +116,12 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         try {
             if (workingDir.exists() && !workingDir.deleteRecursively()) {
                 Log.e(TAG, "Failed to delete existing working directory")
-                request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+                request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 return
             }
             if (!workingDir.mkdirs()) {
                 Log.e(TAG, "Failed to create working directory")
-                request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+                request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 return
             }
 
@@ -129,7 +129,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                 ApkMinter(keyStore, workingDir, apkInfo).mintApk()
                     ?: run {
                         Log.e(TAG, "Failed to mint APK")
-                        request.callback?.onInstallResult(
+                        request.callback.onInstallResult(
                             WebAppInstallRequest.RESULT_INTERNAL_ERROR,
                             null,
                         )
@@ -143,7 +143,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                 }
                     ?: run {
                         Log.e(TAG, "Timed out waiting for package manager to install $packageName")
-                        request.callback?.onInstallResult(
+                        request.callback.onInstallResult(
                             WebAppInstallRequest.RESULT_INTERNAL_ERROR,
                             null,
                         )
@@ -152,12 +152,12 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
 
             if (installResult != PackageInstaller.STATUS_SUCCESS) {
                 Log.e(TAG, "Failed to install APK: $installResult")
-                request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+                request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 return
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to mint and install APK", e)
-            request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+            request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
             return
         } finally {
             if (!workingDir.deleteRecursively()) {
@@ -166,7 +166,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         }
 
         Log.i(TAG, "Successfully installed $packageName for $request")
-        request.callback?.onInstallResult(WebAppInstallRequest.RESULT_SUCCESS, packageName)
+        request.callback.onInstallResult(WebAppInstallRequest.RESULT_SUCCESS, packageName)
         return
     }
 
