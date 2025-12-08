@@ -17,6 +17,12 @@ package {
 }
 
 android_app {
+    // This mainline SDK will be enabled using RELEASE_WEBAPP_MODULE flag
+    enabled: select(release_flag("RELEASE_WEBAPP_MODULE"), {
+        true: true,
+        false: false,
+    }),
+
     name: "WebAppService",
     srcs: [
         "java/**/*.kt",

@@ -28,7 +28,6 @@ package android.content.pm.webapp {
   @FlaggedApi("com.android.webapp.flags.enable_web_app_service") public final class WebAppManager {
     method public void install(@NonNull android.content.pm.webapp.WebAppInstallRequest);
     method public void query(@NonNull android.content.pm.webapp.WebAppQueryRequest);
-    field public static final String SERVICE_NAME = "webapp_service";
   }
 
   @FlaggedApi("com.android.webapp.flags.enable_web_app_service") public class WebAppQueryRequest {

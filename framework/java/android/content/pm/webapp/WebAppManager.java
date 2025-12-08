@@ -55,14 +55,6 @@ public final class WebAppManager {
     private static final String WEBAPP_PACKAGE = "com.android.webapp.service";
     private static final String WEBAPP_SERVICE_CLASS = "com.android.webapp.service.WebAppService";
 
-    /**
-     * Name of the system service that manages Web Apps.
-     *
-     * <p>This string can be used in {@link Context#getSystemService(String)} to obtain a {@link
-     * WebAppManager} instance.
-     */
-    public static final String SERVICE_NAME = "webapp_service";
-
     private static final Intent BIND_INTENT =
             new Intent(IWebAppService.class.getName())
                     .setComponent(new ComponentName(WEBAPP_PACKAGE, WEBAPP_SERVICE_CLASS));
