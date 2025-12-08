@@ -16,14 +16,23 @@
 
 package com.android.webapp.service
 
+import com.android.webapp.service.model.InstallRequest
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
 
 /**
  * A singleton that manages the continuation used to suspend web app installation and make it wait
- * until package manager returns the installation result.
+ * for various conditions before resuming the installation.
  */
 object InstallContinuationManager {
-    // The key is the unique session ID provided by the package manager.
-    val continuations = ConcurrentHashMap<Int, Continuation<Int>>()
+    /**
+     * The continuations for waiting for user confirmation on the dialog. The key is the install
+     * request in [InstallRequest].
+     */
+    val userContinuations = ConcurrentHashMap<InstallRequest, Continuation<Boolean>>()
+    /**
+     * The continuations for waiting for package manager installation result. The key is the unique
+     * session ID provided by the package manager.
+     */
+    val pmContinuations = ConcurrentHashMap<Int, Continuation<Int>>()
 }

@@ -36,8 +36,13 @@
             android:exported="true"
             android:featureFlag="com.android.webapp.flags.enable_web_app_service_v2" />
 
+        <activity android:name=".view.InstallConfirmActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Dialog"
+            android:featureFlag="com.android.webapp.flags.enable_web_app_service_v2" />
+
         <receiver
-            android:name=".InstallStatusReceiver"
+            android:name=".PackageManagerReceiver"
             android:exported="false"
             android:featureFlag="com.android.webapp.flags.enable_web_app_service_v2" />
     </application>

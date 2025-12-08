@@ -14,7 +14,16 @@
      limitations under the License.
 -->
 
-<resources>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <!-- [CHAR LIMIT=60] -->
     <string name="app_name">Web App Service</string>
+
+    <!-- [CHAR LIMIT=60] Title of the dialog asking user to confirm installation of a web app. -->
+    <string name="install_confirm_title">Install <xliff:g id="app_name" example="My Web App">%1$s</xliff:g>?</string>
+    <!-- [CHAR LIMIT=NONE] Message asking user to trust the invoking app to install the web app from a specific URL. -->
+    <string name="install_confirm_message">Do you trust <xliff:g id="invoking_app_name" example="Browser">%1$s</xliff:g> to install the app from:\n<xliff:g id="start_url" example="https://www.android.com/">%2$s</xliff:g></string>
+    <!-- [CHAR LIMIT=20] Label for the install button. -->
+    <string name="install_confirm_button_install">Install</string>
+    <!-- [CHAR LIMIT=20] Label for the cancel button. -->
+    <string name="install_confirm_button_cancel">Cancel</string>
 </resources>

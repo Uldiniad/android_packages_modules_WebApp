@@ -17,7 +17,6 @@
 package com.android.webapp.service
 
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageInstaller
@@ -30,6 +29,7 @@ import com.android.webapp.service.minter.ApkKeyStore
 import com.android.webapp.service.minter.ApkMinter
 import com.android.webapp.service.model.InstallRequest
 import com.android.webapp.service.model.PwaManifest
+import com.android.webapp.service.view.InstallConfirmActivity
 import java.io.File
 import java.io.FileInputStream
 import java.net.HttpURLConnection
@@ -49,7 +49,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 
 /** Processes Web App installation requests in a queue. */
-class WebAppInstaller(val context: Context, scope: CoroutineScope) {
+class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
+
+    private val context = service.applicationContext
 
     private var installRequests = mutableSetOf<InstallRequest>()
     private val mutex = Mutex()
@@ -110,7 +112,11 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         val apkInfo = generateApkInfo(request, manifest)
         val packageName = apkInfo.packageName
 
-        // TODO: Await user confirmation
+        if (!waitForUserConfirm(request, apkInfo)) {
+            Log.w(TAG, "User cancelled installation")
+            request.callback.onInstallResult(WebAppInstallRequest.RESULT_CANCELLED_BY_USER, null)
+            return
+        }
 
         val workingDir = File(context.cacheDir, packageName)
         try {
@@ -170,6 +176,33 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         return
     }
 
+    /**
+     * Wait for user confirmation in [InstallConfirmActivity].
+     *
+     * @return `true` if the user confirmed the installation, `false` if the user cancelled the
+     *   installation, dismissed the dialog, or there was a problem processing the request in the
+     *   dialog.
+     */
+    private suspend fun waitForUserConfirm(request: InstallRequest, apkInfo: ApkInfo): Boolean =
+        suspendCancellableCoroutine { continuation ->
+            InstallContinuationManager.userContinuations[request] = continuation
+
+            val userConfirmIntent =
+                Intent(context, InstallConfirmActivity::class.java).apply {
+                    // TODO(b/447493504O): Provide app icon to the confirmation dialog
+                    putExtra(InstallConfirmActivity.EXTRA_INSTALL_REQUEST, request.toBundle())
+                    putExtra(InstallConfirmActivity.EXTRA_APP_NAME, apkInfo.appName)
+                    putExtra(InstallConfirmActivity.EXTRA_APP_START_URL, apkInfo.startUrl)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            service.startActivity(userConfirmIntent)
+
+            continuation.invokeOnCancellation {
+                Log.e(TAG, "Installation for $request cancelled while awaiting user confirmation")
+                InstallContinuationManager.userContinuations.remove(request)
+            }
+        }
+
     private fun fetchAndParseManifest(manifestUrl: String): PwaManifest? {
         var connection: HttpURLConnection? = null
         try {
@@ -213,7 +246,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
             }
 
         val sessionId = packageInstaller.createSession(params)
-        InstallContinuationManager.continuations[sessionId] = continuation
+        InstallContinuationManager.pmContinuations[sessionId] = continuation
         packageInstaller.openSession(sessionId).use { session ->
             session.openWrite("WebAppService", 0, -1).use { output ->
                 FileInputStream(apkFile).use { input -> input.copyTo(output) }
@@ -224,7 +257,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                 PendingIntent.getBroadcast(
                     context,
                     sessionId,
-                    Intent(context, InstallStatusReceiver::class.java),
+                    Intent(context, PackageManagerReceiver::class.java),
                     PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
                 )
             session.commit(pendingIntent.intentSender)
@@ -233,7 +266,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         continuation.invokeOnCancellation {
             Log.e(TAG, "Installation for $packageName cancelled")
             packageInstaller.abandonSession(sessionId)
-            InstallContinuationManager.continuations.remove(sessionId)
+            InstallContinuationManager.pmContinuations.remove(sessionId)
         }
     }
 

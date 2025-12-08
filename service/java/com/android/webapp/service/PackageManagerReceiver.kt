@@ -23,7 +23,11 @@ import android.content.pm.PackageInstaller
 import android.util.Log
 import kotlin.coroutines.resume
 
-class InstallStatusReceiver : BroadcastReceiver() {
+/**
+ * A [BroadcastReceiver] that receives package manager app install result and resumes installation
+ * in [WebAppInstaller].
+ */
+class PackageManagerReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         val sessionId = intent?.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, -1)
         if (sessionId == null || sessionId == -1) {
@@ -33,10 +37,10 @@ class InstallStatusReceiver : BroadcastReceiver() {
         val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, -1)
         val statusMessage = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
         Log.i(TAG, "Install result for session ID $sessionId: $status $statusMessage")
-        InstallContinuationManager.continuations.remove(sessionId)?.resume(status)
+        InstallContinuationManager.pmContinuations.remove(sessionId)?.resume(status)
     }
 
     companion object {
-        private const val TAG = "InstallStatusReceiver"
+        private const val TAG = "PackageManagerReceiver"
     }
 }
