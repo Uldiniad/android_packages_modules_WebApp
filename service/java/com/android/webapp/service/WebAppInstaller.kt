@@ -261,7 +261,44 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                     Log.i(TAG, "Using fallback displayMode: $DEFAULT_DISPLAY_MODE")
                     DEFAULT_DISPLAY_MODE
                 }
+        val backgroundColor =
+            manifest.backgroundColor
+                ?: run {
+                    Log.i(TAG, "Using fallback backgroundColor: $DEFAULT_BACKGROUND_COLOR")
+                    DEFAULT_BACKGROUND_COLOR
+                }
+        val themeColor =
+            manifest.themeColor
+                ?: run {
+                    Log.i(TAG, "Using fallback themeColor: $DEFAULT_THEME_COLOR")
+                    DEFAULT_THEME_COLOR
+                }
+        val themeColorDark =
+            manifest.themeColorDark
+                ?: run {
+                    Log.i(TAG, "Using fallback themeColorDark: $DEFAULT_THEME_COLOR_DARK")
+                    DEFAULT_THEME_COLOR_DARK
+                }
+        val navigationColor =
+            manifest.navigationColor
+                ?: run {
+                    Log.i(TAG, "Using fallback navigationColor: $DEFAULT_NAVIGATION_COLOR")
+                    DEFAULT_NAVIGATION_COLOR
+                }
+        val navigationColorDark =
+            manifest.navigationColorDark
+                ?: run {
+                    Log.i(TAG, "Using fallback navigationColorDark: $DEFAULT_NAVIGATION_COLOR_DARK")
+                    DEFAULT_NAVIGATION_COLOR_DARK
+                }
+        val orientation =
+            manifest.orientation
+                ?: run {
+                    Log.i(TAG, "Using fallback orientation: $DEFAULT_ORIENTATION")
+                    DEFAULT_ORIENTATION
+                }
 
+        // TODO(b/448503528): Escape strings for XML
         return ApkInfo(
             appName = appName,
             packageName = generatePackageName(request.callingPackage, request.manifestUrl),
@@ -273,6 +310,12 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
             displayModeFullscreenSticky = displayMode == "fullscreen-sticky",
             displayModeMinimalUi = displayMode == "minimal-ui",
             displayModeBrowser = displayMode == "browser",
+            backgroundColor = backgroundColor,
+            themeColor = themeColor,
+            themeColorDark = themeColorDark,
+            navigationColor = navigationColor,
+            navigationColorDark = navigationColorDark,
+            orientation = orientation,
         )
     }
 
@@ -292,8 +335,14 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
 
     companion object {
         private const val APK_SDK_VERSION = "36"
+        private const val DEFAULT_BACKGROUND_COLOR = "#bababa"
         private const val DEFAULT_DISPLAY_MODE = "standalone"
+        private const val DEFAULT_NAVIGATION_COLOR = "#ff303f9f"
+        private const val DEFAULT_NAVIGATION_COLOR_DARK = "#ffff0000"
+        private const val DEFAULT_ORIENTATION = "any"
         private const val DEFAULT_START_URL = "/"
+        private const val DEFAULT_THEME_COLOR = "#ff303f9f"
+        private const val DEFAULT_THEME_COLOR_DARK = "#ff00ff00"
         private const val PACKAGE_NAME_PREFIX = "com.android.webapp"
         private const val PACKAGE_NAME_MAX_LENGTH = 150
         private const val TAG = "WebAppInstaller"
