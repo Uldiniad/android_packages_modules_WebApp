@@ -1,9 +1,7 @@
 // Signature format: 2.0
 package android.content.pm.webapp {
 
-  @FlaggedApi("com.android.webapp.flags.enable_web_app_service") public class WebAppInstallRequest {
-    method @Nullable public android.content.pm.webapp.WebAppInstallRequest.Callback getCallback();
-    method @Nullable public java.util.concurrent.Executor getExecutor();
+  @FlaggedApi("com.android.webapp.flags.enable_web_app_service_v2") public class WebAppInstallRequest {
     method @NonNull public String getManifestUrl();
     method @NonNull public CharSequence getTitle();
     field public static final int RESULT_CANCELLED_BY_USER = 6; // 0x6
@@ -15,39 +13,23 @@ package android.content.pm.webapp {
     field public static final int RESULT_SUCCESS = 0; // 0x0
   }
 
-  @FlaggedApi("com.android.webapp.flags.enable_web_app_service") public static final class WebAppInstallRequest.Builder {
+  @FlaggedApi("com.android.webapp.flags.enable_web_app_service_v2") public static final class WebAppInstallRequest.Builder {
     ctor public WebAppInstallRequest.Builder(@NonNull CharSequence, @NonNull String);
     method @NonNull public android.content.pm.webapp.WebAppInstallRequest build();
-    method @NonNull public android.content.pm.webapp.WebAppInstallRequest.Builder setCallback(@NonNull java.util.concurrent.Executor, @NonNull android.content.pm.webapp.WebAppInstallRequest.Callback);
   }
 
-  @FlaggedApi("com.android.webapp.flags.enable_web_app_service") public static interface WebAppInstallRequest.Callback {
-    method public void onInstallResult(int, @Nullable String);
+  @FlaggedApi("com.android.webapp.flags.enable_web_app_service_v2") public final class WebAppManager {
+    method public void install(@NonNull android.content.pm.webapp.WebAppInstallRequest, @NonNull java.util.concurrent.Executor, @NonNull java.util.function.ObjIntConsumer<java.lang.String>);
+    method public void query(@NonNull android.content.pm.webapp.WebAppQueryRequest, @NonNull java.util.concurrent.Executor, @NonNull java.util.function.IntConsumer);
   }
 
-  @FlaggedApi("com.android.webapp.flags.enable_web_app_service") public final class WebAppManager {
-    method public void install(@NonNull android.content.pm.webapp.WebAppInstallRequest);
-    method public void query(@NonNull android.content.pm.webapp.WebAppQueryRequest);
-  }
-
-  @FlaggedApi("com.android.webapp.flags.enable_web_app_service") public class WebAppQueryRequest {
-    ctor public WebAppQueryRequest(@NonNull String, @NonNull java.util.concurrent.Executor, @NonNull android.content.pm.webapp.WebAppQueryRequest.Callback);
-    method @NonNull public android.content.pm.webapp.WebAppQueryRequest.Callback getCallback();
-    method @NonNull public java.util.concurrent.Executor getExecutor();
+  @FlaggedApi("com.android.webapp.flags.enable_web_app_service_v2") public class WebAppQueryRequest {
+    ctor public WebAppQueryRequest(@NonNull String);
     method @NonNull public String getPackageName();
-    field public static final int RESULT_EXISTS = 0; // 0x0
+    field public static final int RESULT_INSTALLED = 0; // 0x0
     field public static final int RESULT_INTERNAL_ERROR = 2; // 0x2
-    field public static final int RESULT_NOT_EXISTS = 1; // 0x1
+    field public static final int RESULT_NOT_INSTALLED = 1; // 0x1
     field public static final int RESULT_PERMISSION_DENIED = 3; // 0x3
-  }
-
-  @FlaggedApi("com.android.webapp.flags.enable_web_app_service") public static final class WebAppQueryRequest.Builder {
-    ctor public WebAppQueryRequest.Builder(@NonNull String, @NonNull java.util.concurrent.Executor, @NonNull android.content.pm.webapp.WebAppQueryRequest.Callback);
-    method @NonNull public android.content.pm.webapp.WebAppQueryRequest build();
-  }
-
-  @FlaggedApi("com.android.webapp.flags.enable_web_app_service") public static interface WebAppQueryRequest.Callback {
-    method public void onQueryResult(int);
   }
 
 }

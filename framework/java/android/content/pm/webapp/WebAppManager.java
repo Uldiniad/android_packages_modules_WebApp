@@ -16,24 +16,33 @@
 
 package android.content.pm.webapp;
 
+import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
+import android.annotation.RequiresNoPermission;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.util.Log;
 
 import com.android.internal.annotations.GuardedBy;
+import com.android.webapp.IWebAppInstallCallback;
+import com.android.webapp.IWebAppQueryCallback;
 import com.android.webapp.IWebAppService;
 import com.android.webapp.flags.Flags;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+import java.util.function.ObjIntConsumer;
 
 /**
  * System service that manages the installation and querying of Web Apps.
@@ -49,7 +58,7 @@ import java.util.function.Consumer;
  * @see WebAppInstallRequest
  * @see WebAppQueryRequest
  */
-@FlaggedApi(Flags.FLAG_ENABLE_WEB_APP_SERVICE)
+@FlaggedApi(Flags.FLAG_ENABLE_WEB_APP_SERVICE_V2)
 public final class WebAppManager {
     private static final String TAG = "WebAppManager";
     private static final String WEBAPP_PACKAGE = "com.android.webapp.service";
@@ -166,21 +175,55 @@ public final class WebAppManager {
      * Requests the installation of a Web App.
      *
      * <p>This operation is asynchronous. The request is processed by the system in the background,
-     * and the result is delivered via the callback provided in the {@code request} if set.
+     * and the result is delivered via the provided callback.
      *
      * @param request The {@link WebAppInstallRequest} containing the app details (such as title and
-     *     manifest URL) and the result callback.
+     *     manifest URL).
+     * @param executor The {@link Executor} on which the callback will be invoked.
+     * @param callback The callback to receive the installation result. The {@link String} is the
+     *     package name of the installed web app. The int value is one of the result codes defined
+     *     in {@link WebAppInstallRequest}. The {@link String} will be {@code null} if the result
+     *     code is not {@link WebAppInstallRequest#RESULT_SUCCESS}.
      */
-    public void install(@NonNull WebAppInstallRequest request) {
+    public void install(
+            @NonNull WebAppInstallRequest request,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull ObjIntConsumer<String> callback) {
         try {
             enqueueRequest(
-                    request::start,
+                    service -> {
+                        try {
+                            service.install(
+                                    request.getTitle().toString(),
+                                    request.getManifestUrl(),
+                                    new IWebAppInstallCallback.Stub() {
+                                        @Override
+                                        @RequiresNoPermission
+                                        public void onInstallResult(
+                                                int resultCode, @Nullable String packageName) {
+                                            executor.execute(
+                                                    () -> callback.accept(packageName, resultCode));
+                                        }
+                                    });
+                        } catch (RemoteException e) {
+                            Log.e(TAG, "RemoteException while calling install() on service.", e);
+                            executor.execute(
+                                    () ->
+                                            callback.accept(
+                                                    null,
+                                                    WebAppInstallRequest.RESULT_INTERNAL_ERROR));
+                        }
+                    },
                     () ->
-                            request.maybeCallCallback(
-                                    WebAppInstallRequest.RESULT_INTERNAL_ERROR, null));
+                            executor.execute(
+                                    () ->
+                                            callback.accept(
+                                                    null,
+                                                    WebAppInstallRequest.RESULT_INTERNAL_ERROR)));
         } catch (SecurityException e) {
             Log.e(TAG, "SecurityException while connecting to the service", e);
-            request.maybeCallCallback(WebAppInstallRequest.RESULT_PERMISSION_DENIED, null);
+            executor.execute(
+                    () -> callback.accept(null, WebAppInstallRequest.RESULT_PERMISSION_DENIED));
         }
     }
 
@@ -188,20 +231,49 @@ public final class WebAppManager {
      * Queries the status of a specific Web App package.
      *
      * <p>This operation is asynchronous. The system checks if the package is installed by the Web
-     * App service and visible to the caller, delivering the result via the callback provided in the
-     * {@code request}.
+     * App service and visible to the caller, delivering the result via the provided callback.
      *
-     * @param request The {@link WebAppQueryRequest} containing the package name and the result
-     *     callback.
+     * @param request The {@link WebAppQueryRequest} containing the package name.
+     * @param executor The {@link Executor} on which the callback will be invoked.
+     * @param callback The callback to receive the query result. The int value is one of the result
+     *     codes defined in {@link WebAppQueryRequest}.
      */
-    public void query(@NonNull WebAppQueryRequest request) {
+    public void query(
+            @NonNull WebAppQueryRequest request,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull IntConsumer callback) {
         try {
             enqueueRequest(
-                    request::start,
-                    () -> request.callCallback(WebAppQueryRequest.RESULT_INTERNAL_ERROR));
+                    service -> {
+                        try {
+                            service.queryPackage(
+                                    request.getPackageName(),
+                                    new IWebAppQueryCallback.Stub() {
+                                        @Override
+                                        @RequiresNoPermission
+                                        public void onQueryResult(int resultCode) {
+                                            executor.execute(() -> callback.accept(resultCode));
+                                        }
+                                    });
+                        } catch (RemoteException e) {
+                            Log.e(
+                                    TAG,
+                                    "RemoteException while calling queryPackage() on service.",
+                                    e);
+                            executor.execute(
+                                    () ->
+                                            callback.accept(
+                                                    WebAppQueryRequest.RESULT_INTERNAL_ERROR));
+                        }
+                    },
+                    () ->
+                            executor.execute(
+                                    () ->
+                                            callback.accept(
+                                                    WebAppQueryRequest.RESULT_INTERNAL_ERROR)));
         } catch (SecurityException e) {
             Log.e(TAG, "SecurityException while connecting to the service", e);
-            request.callCallback(WebAppQueryRequest.RESULT_PERMISSION_DENIED);
+            executor.execute(() -> callback.accept(WebAppQueryRequest.RESULT_PERMISSION_DENIED));
         }
     }
 }

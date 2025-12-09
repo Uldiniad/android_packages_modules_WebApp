@@ -28,7 +28,7 @@ import com.android.webapp.flags.Flags;
  *
  * @hide
  */
-@FlaggedApi(Flags.FLAG_ENABLE_WEB_APP_SERVICE)
+@FlaggedApi(Flags.FLAG_ENABLE_WEB_APP_SERVICE_V2)
 @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
 public class WebAppFrameworkInitializer {
     private WebAppFrameworkInitializer() {}
