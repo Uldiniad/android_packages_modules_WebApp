@@ -45,6 +45,7 @@ android_app {
         "bouncycastle-webapp",
         "com.android.webapp.flags-aconfig-java",
         "framework-webapp-aidl-java",
+        "guava",
         "jmustache",
         "kotlin-stdlib",
         "kotlinx-coroutines-android",
