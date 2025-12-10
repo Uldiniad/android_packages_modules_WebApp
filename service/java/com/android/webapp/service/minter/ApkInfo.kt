@@ -27,4 +27,10 @@ data class ApkInfo(
     val displayModeFullscreenSticky: Boolean,
     val displayModeMinimalUi: Boolean,
     val displayModeBrowser: Boolean,
+    val backgroundColor: String,
+    val themeColor: String,
+    val themeColorDark: String,
+    val navigationColor: String,
+    val navigationColorDark: String,
+    val orientation: String,
 )

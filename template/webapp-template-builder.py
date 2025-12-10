@@ -27,9 +27,10 @@ def print_usage_and_exit():
 Expected args in order:
 1. webapp-template.zip: The output zip template bundle
 2. AndroidManifest.xml.mustache: The AndroidManifest.xml Mustache template
-3. WebAppTemplate.apk: The template APK containing classes.dex
-4. res-ids.txt: The stable resource IDs file
-5+. res/...: One or more resource files
+3. colors.xml.mustache: The colors.xml Mustache template
+4. WebAppTemplate.apk: The template APK containing classes.dex
+5. res-ids.txt: The stable resource IDs file
+6+. res/...: One or more resource files
 ''', file=sys.stderr)
     sys.exit(1)
 
@@ -48,25 +49,31 @@ def main():
         print(f'Arg 2 must be AndroidManifest.xml.mustache, but is {android_manifest}', file=sys.stderr)
         print_usage_and_exit()
 
-    template_apk = sys.argv[3]
+    colors_xml = sys.argv[3]
+    if os.path.basename(colors_xml) != 'colors.xml.mustache':
+        print(f'Arg 3 must be colors.xml.mustache, but is {colors_xml}', file=sys.stderr)
+        print_usage_and_exit()
+
+    template_apk = sys.argv[4]
     if os.path.basename(template_apk) != 'WebAppTemplate.apk':
-        print(f'Arg 3 must be WebAppTemplate.apk, but is {template_apk}', file=sys.stderr)
+        print(f'Arg 4 must be WebAppTemplate.apk, but is {template_apk}', file=sys.stderr)
         print_usage_and_exit()
 
-    res_ids = sys.argv[4]
+    res_ids = sys.argv[5]
     if os.path.basename(res_ids) != 'res-ids.txt':
-        print(f'Arg 4 must be res-ids.txt, but is {res_ids}', file=sys.stderr)
+        print(f'Arg 5 must be res-ids.txt, but is {res_ids}', file=sys.stderr)
         print_usage_and_exit()
 
-    res_files = sys.argv[5:]
+    res_files = sys.argv[6:]
     for res_file in res_files:
         if res_file.split('/')[-3] != 'res':
-            print(f'Args starting from 5 must be res files, but got {res_file}', file=sys.stderr)
+            print(f'Args starting from 6 must be res files, but got {res_file}', file=sys.stderr)
             print_usage_and_exit()
 
     with zipfile.ZipFile(out_zip, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as out:
-        # 1. AndroidManifest.xml Mustache template
+        # 1. AndroidManifest.xml and colors.xml Mustache templates
         out.write(android_manifest, 'AndroidManifest.xml.mustache')
+        out.write(colors_xml, 'colors.xml.mustache')
 
         # 2. res-ids.txt for stable resource IDs
         out.write(res_ids, 'res-ids.txt')

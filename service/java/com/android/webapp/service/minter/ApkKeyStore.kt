@@ -154,10 +154,11 @@ class ApkKeyStore {
                 signers.any { signature ->
                     signature.toByteArray().contentEquals(expectedCert.encoded)
                 }
-            if (matches) WebAppQueryRequest.RESULT_EXISTS else WebAppQueryRequest.RESULT_NOT_EXISTS
+            if (matches) WebAppQueryRequest.RESULT_INSTALLED
+            else WebAppQueryRequest.RESULT_NOT_INSTALLED
         } catch (e: PackageManager.NameNotFoundException) {
             Log.w(TAG, "Target package '$packageName' not found or not visible.", e)
-            WebAppQueryRequest.RESULT_NOT_EXISTS
+            WebAppQueryRequest.RESULT_NOT_INSTALLED
         } catch (e: Exception) {
             Log.e(TAG, "Error verifying package signature for $packageName", e)
             WebAppQueryRequest.RESULT_INTERNAL_ERROR

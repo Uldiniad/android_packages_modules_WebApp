@@ -102,7 +102,8 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
         val manifestTemplateFile = File(unpackedTemplateDir, "AndroidManifest.xml.mustache")
         val manifestFile = File(unpackedTemplateDir, "AndroidManifest.xml")
         try {
-            val template = Mustache.compiler().compile(manifestTemplateFile.reader())
+            val template =
+                manifestTemplateFile.reader().use { reader -> Mustache.compiler().compile(reader) }
             manifestFile.writeText(template.execute(apkInfo))
         } catch (e: IOException) {
             Log.e(TAG, "Failed to read AndroidManifest.xml", e)
@@ -119,6 +120,26 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
             stableIdsFile.writeText(resIdsContent)
         } catch (e: IOException) {
             Log.e(TAG, "Failed to modify res-ids.txt", e)
+            return null
+        }
+
+        val valuesDir = File(unpackedTemplateDir, "res/values")
+        if (!valuesDir.exists() && !valuesDir.mkdirs()) {
+            Log.e(TAG, "Failed to create $valuesDir")
+            return null
+        }
+
+        val colorsTemplateFile = File(unpackedTemplateDir, "colors.xml.mustache")
+        val colorsFile = File(valuesDir, "colors.xml")
+        try {
+            val colorTemplate =
+                colorsTemplateFile.reader().use { reader -> Mustache.compiler().compile(reader) }
+            colorsFile.writeText(colorTemplate.execute(apkInfo))
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to read colors.xml", e)
+            return null
+        } catch (e: MustacheException) {
+            Log.e(TAG, "Failed to execute template for colors.xml", e)
             return null
         }
 

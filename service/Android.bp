@@ -34,6 +34,12 @@ android_app {
     min_sdk_version: "36",
 
     static_libs: [
+        "androidx.activity_activity-compose",
+        "androidx.compose.foundation_foundation",
+        "androidx.compose.material3_material3",
+        "androidx.compose.runtime_runtime",
+        "androidx.compose.ui_ui",
+        "androidx.core_core",
         "androidx.lifecycle_lifecycle-service",
         "apksig",
         "bouncycastle-webapp",

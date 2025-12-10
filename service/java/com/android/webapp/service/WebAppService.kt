@@ -18,6 +18,7 @@ package com.android.webapp.service
 
 import android.annotation.PermissionManuallyEnforced
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.webapp.WebAppInstallRequest
 import android.content.pm.webapp.WebAppQueryRequest
 import android.os.IBinder
@@ -45,7 +46,7 @@ class WebAppService : LifecycleService() {
             override fun install(
                 title: String,
                 manifestUrl: String,
-                callback: IWebAppInstallCallback?,
+                callback: IWebAppInstallCallback,
             ) {
                 val callingUid = getCallingUid()
                 val pm = applicationContext.packageManager
@@ -58,18 +59,41 @@ class WebAppService : LifecycleService() {
                                 TAG,
                                 "Calling UID $callingUid does not map to a single package: $callingPackages",
                             )
-                            callback?.onInstallResult(
+                            callback.onInstallResult(
                                 WebAppInstallRequest.RESULT_INVALID_ARGUMENTS,
                                 null,
                             )
                             return
                         }
-                Log.d(TAG, "Calling UID: $callingUid Package: $callingPackage")
+                val callingAppName: CharSequence
+                try {
+                    val callingAppInfo =
+                        pm.getApplicationInfo(
+                            callingPackage,
+                            PackageManager.ApplicationInfoFlags.of(0),
+                        )
+                    callingAppName = pm.getApplicationLabel(callingAppInfo)
+                } catch (e: PackageManager.NameNotFoundException) {
+                    Log.e(TAG, "Failed to get calling app name for $callingPackage", e)
+                    callback.onInstallResult(WebAppInstallRequest.RESULT_INVALID_ARGUMENTS, null)
+                    return
+                }
+                Log.d(
+                    TAG,
+                    "Calling UID: $callingUid Package: $callingPackage Name: $callingAppName",
+                )
 
                 // TODO: Caller verification
 
                 val request =
-                    InstallRequest(callingUid, callingPackage, manifestUrl, title, callback)
+                    InstallRequest(
+                        callingUid,
+                        callingPackage,
+                        callingAppName,
+                        manifestUrl,
+                        title,
+                        callback,
+                    )
                 lifecycleScope.launch {
                     val result =
                         withTimeoutOrNull(INSTALL_ENQUEUE_TIMEOUT_SECONDS.seconds) {
@@ -77,7 +101,7 @@ class WebAppService : LifecycleService() {
                         }
                             ?: run {
                                 Log.e(TAG, "Timed out enqueuing install request $request")
-                                callback?.onInstallResult(
+                                callback.onInstallResult(
                                     WebAppInstallRequest.RESULT_INTERNAL_ERROR,
                                     null,
                                 )
@@ -85,7 +109,7 @@ class WebAppService : LifecycleService() {
                             }
 
                     if (!result) {
-                        callback?.onInstallResult(
+                        callback.onInstallResult(
                             WebAppInstallRequest.RESULT_DUPLICATED_REQUEST,
                             null,
                         )
@@ -112,9 +136,7 @@ class WebAppService : LifecycleService() {
         }
 
     private val installerScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    private val installer: WebAppInstaller by lazy {
-        WebAppInstaller(applicationContext, installerScope)
-    }
+    private val installer: WebAppInstaller by lazy { WebAppInstaller(this, installerScope) }
 
     override fun onBind(intent: Intent): IBinder {
         super.onBind(intent)

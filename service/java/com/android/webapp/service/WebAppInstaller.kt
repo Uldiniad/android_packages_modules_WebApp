@@ -17,7 +17,6 @@
 package com.android.webapp.service
 
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageInstaller
@@ -30,6 +29,7 @@ import com.android.webapp.service.minter.ApkKeyStore
 import com.android.webapp.service.minter.ApkMinter
 import com.android.webapp.service.model.InstallRequest
 import com.android.webapp.service.model.PwaManifest
+import com.android.webapp.service.view.InstallConfirmActivity
 import java.io.File
 import java.io.FileInputStream
 import java.net.HttpURLConnection
@@ -49,7 +49,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 
 /** Processes Web App installation requests in a queue. */
-class WebAppInstaller(val context: Context, scope: CoroutineScope) {
+class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
+
+    private val context = service.applicationContext
 
     private var installRequests = mutableSetOf<InstallRequest>()
     private val mutex = Mutex()
@@ -101,7 +103,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
             fetchAndParseManifest(request.manifestUrl)
                 ?: run {
                     Log.e(TAG, "Failed to fetch and parse manifest")
-                    request.callback?.onInstallResult(
+                    request.callback.onInstallResult(
                         WebAppInstallRequest.RESULT_NETWORK_ERROR,
                         null,
                     )
@@ -110,18 +112,22 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         val apkInfo = generateApkInfo(request, manifest)
         val packageName = apkInfo.packageName
 
-        // TODO: Await user confirmation
+        if (!waitForUserConfirm(request, apkInfo)) {
+            Log.w(TAG, "User cancelled installation")
+            request.callback.onInstallResult(WebAppInstallRequest.RESULT_CANCELLED_BY_USER, null)
+            return
+        }
 
         val workingDir = File(context.cacheDir, packageName)
         try {
             if (workingDir.exists() && !workingDir.deleteRecursively()) {
                 Log.e(TAG, "Failed to delete existing working directory")
-                request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+                request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 return
             }
             if (!workingDir.mkdirs()) {
                 Log.e(TAG, "Failed to create working directory")
-                request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+                request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 return
             }
 
@@ -129,7 +135,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                 ApkMinter(keyStore, workingDir, apkInfo).mintApk()
                     ?: run {
                         Log.e(TAG, "Failed to mint APK")
-                        request.callback?.onInstallResult(
+                        request.callback.onInstallResult(
                             WebAppInstallRequest.RESULT_INTERNAL_ERROR,
                             null,
                         )
@@ -143,7 +149,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                 }
                     ?: run {
                         Log.e(TAG, "Timed out waiting for package manager to install $packageName")
-                        request.callback?.onInstallResult(
+                        request.callback.onInstallResult(
                             WebAppInstallRequest.RESULT_INTERNAL_ERROR,
                             null,
                         )
@@ -152,12 +158,12 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
 
             if (installResult != PackageInstaller.STATUS_SUCCESS) {
                 Log.e(TAG, "Failed to install APK: $installResult")
-                request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+                request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 return
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to mint and install APK", e)
-            request.callback?.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+            request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
             return
         } finally {
             if (!workingDir.deleteRecursively()) {
@@ -166,9 +172,36 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         }
 
         Log.i(TAG, "Successfully installed $packageName for $request")
-        request.callback?.onInstallResult(WebAppInstallRequest.RESULT_SUCCESS, packageName)
+        request.callback.onInstallResult(WebAppInstallRequest.RESULT_SUCCESS, packageName)
         return
     }
+
+    /**
+     * Wait for user confirmation in [InstallConfirmActivity].
+     *
+     * @return `true` if the user confirmed the installation, `false` if the user cancelled the
+     *   installation, dismissed the dialog, or there was a problem processing the request in the
+     *   dialog.
+     */
+    private suspend fun waitForUserConfirm(request: InstallRequest, apkInfo: ApkInfo): Boolean =
+        suspendCancellableCoroutine { continuation ->
+            InstallContinuationManager.userContinuations[request] = continuation
+
+            val userConfirmIntent =
+                Intent(context, InstallConfirmActivity::class.java).apply {
+                    // TODO(b/447493504O): Provide app icon to the confirmation dialog
+                    putExtra(InstallConfirmActivity.EXTRA_INSTALL_REQUEST, request.toBundle())
+                    putExtra(InstallConfirmActivity.EXTRA_APP_NAME, apkInfo.appName)
+                    putExtra(InstallConfirmActivity.EXTRA_APP_START_URL, apkInfo.startUrl)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            service.startActivity(userConfirmIntent)
+
+            continuation.invokeOnCancellation {
+                Log.e(TAG, "Installation for $request cancelled while awaiting user confirmation")
+                InstallContinuationManager.userContinuations.remove(request)
+            }
+        }
 
     private fun fetchAndParseManifest(manifestUrl: String): PwaManifest? {
         var connection: HttpURLConnection? = null
@@ -213,7 +246,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
             }
 
         val sessionId = packageInstaller.createSession(params)
-        InstallContinuationManager.continuations[sessionId] = continuation
+        InstallContinuationManager.pmContinuations[sessionId] = continuation
         packageInstaller.openSession(sessionId).use { session ->
             session.openWrite("WebAppService", 0, -1).use { output ->
                 FileInputStream(apkFile).use { input -> input.copyTo(output) }
@@ -224,7 +257,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                 PendingIntent.getBroadcast(
                     context,
                     sessionId,
-                    Intent(context, InstallStatusReceiver::class.java),
+                    Intent(context, PackageManagerReceiver::class.java),
                     PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
                 )
             session.commit(pendingIntent.intentSender)
@@ -233,7 +266,7 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
         continuation.invokeOnCancellation {
             Log.e(TAG, "Installation for $packageName cancelled")
             packageInstaller.abandonSession(sessionId)
-            InstallContinuationManager.continuations.remove(sessionId)
+            InstallContinuationManager.pmContinuations.remove(sessionId)
         }
     }
 
@@ -261,7 +294,44 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
                     Log.i(TAG, "Using fallback displayMode: $DEFAULT_DISPLAY_MODE")
                     DEFAULT_DISPLAY_MODE
                 }
+        val backgroundColor =
+            manifest.backgroundColor
+                ?: run {
+                    Log.i(TAG, "Using fallback backgroundColor: $DEFAULT_BACKGROUND_COLOR")
+                    DEFAULT_BACKGROUND_COLOR
+                }
+        val themeColor =
+            manifest.themeColor
+                ?: run {
+                    Log.i(TAG, "Using fallback themeColor: $DEFAULT_THEME_COLOR")
+                    DEFAULT_THEME_COLOR
+                }
+        val themeColorDark =
+            manifest.themeColorDark
+                ?: run {
+                    Log.i(TAG, "Using fallback themeColorDark: $DEFAULT_THEME_COLOR_DARK")
+                    DEFAULT_THEME_COLOR_DARK
+                }
+        val navigationColor =
+            manifest.navigationColor
+                ?: run {
+                    Log.i(TAG, "Using fallback navigationColor: $DEFAULT_NAVIGATION_COLOR")
+                    DEFAULT_NAVIGATION_COLOR
+                }
+        val navigationColorDark =
+            manifest.navigationColorDark
+                ?: run {
+                    Log.i(TAG, "Using fallback navigationColorDark: $DEFAULT_NAVIGATION_COLOR_DARK")
+                    DEFAULT_NAVIGATION_COLOR_DARK
+                }
+        val orientation =
+            manifest.orientation
+                ?: run {
+                    Log.i(TAG, "Using fallback orientation: $DEFAULT_ORIENTATION")
+                    DEFAULT_ORIENTATION
+                }
 
+        // TODO(b/448503528): Escape strings for XML
         return ApkInfo(
             appName = appName,
             packageName = generatePackageName(request.callingPackage, request.manifestUrl),
@@ -273,6 +343,12 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
             displayModeFullscreenSticky = displayMode == "fullscreen-sticky",
             displayModeMinimalUi = displayMode == "minimal-ui",
             displayModeBrowser = displayMode == "browser",
+            backgroundColor = backgroundColor,
+            themeColor = themeColor,
+            themeColorDark = themeColorDark,
+            navigationColor = navigationColor,
+            navigationColorDark = navigationColorDark,
+            orientation = orientation,
         )
     }
 
@@ -292,8 +368,14 @@ class WebAppInstaller(val context: Context, scope: CoroutineScope) {
 
     companion object {
         private const val APK_SDK_VERSION = "36"
+        private const val DEFAULT_BACKGROUND_COLOR = "#bababa"
         private const val DEFAULT_DISPLAY_MODE = "standalone"
+        private const val DEFAULT_NAVIGATION_COLOR = "#ff303f9f"
+        private const val DEFAULT_NAVIGATION_COLOR_DARK = "#ffff0000"
+        private const val DEFAULT_ORIENTATION = "any"
         private const val DEFAULT_START_URL = "/"
+        private const val DEFAULT_THEME_COLOR = "#ff303f9f"
+        private const val DEFAULT_THEME_COLOR_DARK = "#ff00ff00"
         private const val PACKAGE_NAME_PREFIX = "com.android.webapp"
         private const val PACKAGE_NAME_MAX_LENGTH = 150
         private const val TAG = "WebAppInstaller"
