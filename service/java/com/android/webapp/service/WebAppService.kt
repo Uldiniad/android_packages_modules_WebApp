@@ -119,11 +119,24 @@ class WebAppService : LifecycleService() {
 
             @PermissionManuallyEnforced
             override fun queryPackage(packageName: String, callback: IWebAppQueryCallback) {
-                // TODO: Caller verification
+                val callingUid = getCallingUid()
+
                 lifecycleScope.launch {
                     val result =
                         withTimeoutOrNull(PACKAGE_QUERY_TIMEOUT_SECONDS.seconds) {
-                            installer.queryPackage(packageName)
+                            // Clear the calling identity. This ensures that PackageManager queries
+                            // run with the permissions of the current process (system app), not the
+                            // calling app.
+                            val token = clearCallingIdentity()
+                            try {
+                                installer.queryPackage(packageName, callingUid)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error querying $packageName", e)
+                                WebAppQueryRequest.RESULT_INTERNAL_ERROR
+                            } finally {
+                                // Always restore the identity
+                                restoreCallingIdentity(token)
+                            }
                         }
                             ?: run {
                                 Log.e(TAG, "Timed out querying package $packageName")
