@@ -23,6 +23,7 @@ import android.content.pm.webapp.WebAppInstallRequest
 import android.content.pm.webapp.WebAppQueryRequest
 import android.os.IBinder
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.android.webapp.IWebAppInstallCallback
@@ -42,6 +43,10 @@ class WebAppService : LifecycleService() {
 
     private val mBinder =
         object : IWebAppService.Stub() {
+            /**
+             * Process the installation request. See [WebAppInstallRequest.RESULT_PERMISSION_DENIED]
+             * for what apps are eligible of calling this method.
+             */
             @PermissionManuallyEnforced
             override fun install(
                 title: String,
@@ -51,39 +56,75 @@ class WebAppService : LifecycleService() {
                 val callingUid = getCallingUid()
                 val pm = applicationContext.packageManager
 
-                val callingPackages = pm.getPackagesForUid(callingUid)
-                val callingPackage =
-                    callingPackages?.singleOrNull()
-                        ?: run {
-                            Log.e(
-                                TAG,
-                                "Calling UID $callingUid does not map to a single package: $callingPackages",
-                            )
-                            callback.onInstallResult(
-                                WebAppInstallRequest.RESULT_INVALID_ARGUMENTS,
-                                null,
-                            )
-                            return
-                        }
+                // Clear the calling identity. This ensures the PackageManager and RoleManager
+                // queries run with the permissions of the current process (system app), not the
+                // calling app.
+                val token = clearCallingIdentity()
+
+                val callingPackage: String
                 val callingAppName: CharSequence
                 try {
+                    val callingPackages = pm.getPackagesForUid(callingUid)
+                    callingPackage =
+                        callingPackages?.singleOrNull()
+                            ?: run {
+                                Log.e(
+                                    TAG,
+                                    "Calling UID $callingUid does not map to a single package: $callingPackages",
+                                )
+                                callback.onInstallResult(
+                                    WebAppInstallRequest.RESULT_INVALID_ARGUMENTS,
+                                    null,
+                                )
+                                return
+                            }
                     val callingAppInfo =
                         pm.getApplicationInfo(
                             callingPackage,
                             PackageManager.ApplicationInfoFlags.of(0),
                         )
                     callingAppName = pm.getApplicationLabel(callingAppInfo)
+                    Log.d(
+                        TAG,
+                        "Calling UID: $callingUid Package: $callingPackage Name: $callingAppName",
+                    )
+
+                    // Check if the calling app is eligible of installing web apps.
+                    val intent =
+                        Intent(Intent.ACTION_VIEW).apply {
+                            addCategory(Intent.CATEGORY_BROWSABLE)
+                            setData("http:".toUri())
+                        }
+
+                    val resolveInfo =
+                        pm.queryIntentActivities(
+                            intent,
+                            PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()),
+                        )
+
+                    if (resolveInfo.none { it.activityInfo.packageName == callingPackage }) {
+                        Log.e(
+                            TAG,
+                            "The calling app $callingPackage is not eligible to be a browser.",
+                        )
+                        callback.onInstallResult(
+                            WebAppInstallRequest.RESULT_PERMISSION_DENIED,
+                            null,
+                        )
+                        return
+                    }
                 } catch (e: PackageManager.NameNotFoundException) {
-                    Log.e(TAG, "Failed to get calling app name for $callingPackage", e)
+                    Log.e(TAG, "Failed to get calling app info for UID $callingUid", e)
                     callback.onInstallResult(WebAppInstallRequest.RESULT_INVALID_ARGUMENTS, null)
                     return
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to check browser eligibility for UID $callingUid.", e)
+                    callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+                    return
+                } finally {
+                    // Always restore the identity
+                    restoreCallingIdentity(token)
                 }
-                Log.d(
-                    TAG,
-                    "Calling UID: $callingUid Package: $callingPackage Name: $callingAppName",
-                )
-
-                // TODO: Caller verification
 
                 val request =
                     InstallRequest(

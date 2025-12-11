@@ -67,7 +67,8 @@ public class WebAppInstallRequest {
     /**
      * The calling app does not have the necessary permission to install Web Apps.
      *
-     * <p>The caller must hold the {@link android.app.role.RoleManager#ROLE_BROWSER} role.
+     * <p>The caller must be eligible to hold the {@link android.app.role.RoleManager#ROLE_BROWSER}
+     * role.
      */
     public static final int RESULT_PERMISSION_DENIED = 3;
 
