@@ -14,10 +14,17 @@
 -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.android.webapp.tests">
+    package="com.android.webapp.tests"
+    android:targetSandboxVersion="2">
+
+    <application android:usesCleartextTraffic="true">
+        <uses-library android:name="android.test.runner" />
+        <uses-library android:name="org.apache.http.legacy" android:required="false" />
+    </application>
 
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:targetPackage="com.android.webapp.tests"
                      android:label="Tests of webapp module">
     </instrumentation>
+
 </manifest>
