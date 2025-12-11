@@ -16,6 +16,7 @@
 
 package com.android.webapp.service.minter
 
+import android.Manifest
 import android.content.pm.PackageManager
 import android.content.pm.webapp.WebAppQueryRequest
 import android.security.keystore.KeyGenParameterSpec
@@ -120,7 +121,11 @@ class ApkKeyStore {
         }
     }
 
-    suspend fun queryPackage(packageManager: PackageManager, packageName: String): Int {
+    suspend fun queryPackage(
+        packageManager: PackageManager,
+        packageName: String,
+        callingUid: Int,
+    ): Int {
         val expectedEntry =
             getKeyEntry()
                 ?: run {
@@ -134,33 +139,94 @@ class ApkKeyStore {
                     return WebAppQueryRequest.RESULT_INTERNAL_ERROR
                 }
 
+        // Get the info about whether the calling app has QUERY_ALL_PACKAGES permission.
+        val callingAppCanQueryAllPackages =
+            try {
+                packageManager.getPackagesForUid(callingUid).let {
+                    it != null &&
+                        it.any { callingPackageName ->
+                            packageManager.checkPermission(
+                                Manifest.permission.QUERY_ALL_PACKAGES,
+                                callingPackageName,
+                            ) == PackageManager.PERMISSION_GRANTED
+                        }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error checking the permission of calling UID $callingUid", e)
+                // It's safe to return RESULT_INTERNAL_ERROR here because we are querying the
+                // calling package, not the target package.
+                return WebAppQueryRequest.RESULT_INTERNAL_ERROR
+            }
+
         return try {
+            // Get the info about whether the target package was installed by the calling app.
+            val sourceInfo = packageManager.getInstallSourceInfo(packageName)
+            val originatingPackageName =
+                sourceInfo.originatingPackageName
+                    ?: run {
+                        Log.e(TAG, "Failed to get originating package name for $packageName")
+                        // Return RESULT_PERMISSION_DENIED here if the calling app cannot query all
+                        // packages to avoid leaking installed status of a random package.
+                        return if (callingAppCanQueryAllPackages)
+                            WebAppQueryRequest.RESULT_INTERNAL_ERROR
+                        else WebAppQueryRequest.RESULT_PERMISSION_DENIED
+                    }
+            val originatingUid = packageManager.getPackageUid(originatingPackageName, 0)
+            val isInstalledByCallingApp = originatingUid == callingUid
+
+            // Get the info about whether the target package is signed by us.
             val packageInfo =
                 packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
             val signingInfo =
                 packageInfo.signingInfo
                     ?: run {
                         Log.e(TAG, "Failed to get singing info for $packageName")
-                        return WebAppQueryRequest.RESULT_INTERNAL_ERROR
+                        // Return RESULT_PERMISSION_DENIED here if the calling app cannot query all
+                        // packages to avoid leaking installed status of a random package.
+                        return if (callingAppCanQueryAllPackages)
+                            WebAppQueryRequest.RESULT_INTERNAL_ERROR
+                        else WebAppQueryRequest.RESULT_PERMISSION_DENIED
                     }
             val signers =
                 signingInfo.apkContentsSigners
                     ?: signingInfo.signingCertificateHistory
                     ?: run {
                         Log.e(TAG, "Failed to get signers for $packageName")
-                        return WebAppQueryRequest.RESULT_INTERNAL_ERROR
+                        // Return RESULT_PERMISSION_DENIED here if the calling app cannot query all
+                        // packages to avoid leaking installed status of a random package.
+                        return if (callingAppCanQueryAllPackages)
+                            WebAppQueryRequest.RESULT_INTERNAL_ERROR
+                        else WebAppQueryRequest.RESULT_PERMISSION_DENIED
                     }
-            val matches =
+            val isInstalledByWebAppService =
                 signers.any { signature ->
                     signature.toByteArray().contentEquals(expectedCert.encoded)
                 }
-            if (matches) WebAppQueryRequest.RESULT_INSTALLED
-            else WebAppQueryRequest.RESULT_NOT_INSTALLED
+
+            Log.i(
+                TAG,
+                """Querying $packageName for UID $callingUid with conditions:
+                |callingAppCanQueryAllPackages: $callingAppCanQueryAllPackages
+                |isInstalledByWebAppService: $isInstalledByWebAppService
+                |isInstalledByCallingApp: $isInstalledByCallingApp"""
+                    .trimMargin(),
+            )
+            // Check permission according to `WebAppQueryRequest` result code definitions.
+            if (
+                isInstalledByWebAppService &&
+                    (callingAppCanQueryAllPackages || isInstalledByCallingApp)
+            )
+                WebAppQueryRequest.RESULT_INSTALLED
+            else if (callingAppCanQueryAllPackages) WebAppQueryRequest.RESULT_NOT_INSTALLED
+            else WebAppQueryRequest.RESULT_PERMISSION_DENIED
         } catch (e: PackageManager.NameNotFoundException) {
-            Log.w(TAG, "Target package '$packageName' not found or not visible.", e)
-            WebAppQueryRequest.RESULT_NOT_INSTALLED
+            Log.w(TAG, "Target package $packageName not found or not visible.", e)
+            // Return RESULT_PERMISSION_DENIED if calling app doesn't have QUERY_ALL_PACKAGES
+            // permission to avoid leaking installed status of a random package.
+            if (callingAppCanQueryAllPackages) WebAppQueryRequest.RESULT_NOT_INSTALLED
+            else WebAppQueryRequest.RESULT_PERMISSION_DENIED
         } catch (e: Exception) {
-            Log.e(TAG, "Error verifying package signature for $packageName", e)
+            Log.e(TAG, "Error querying package for $packageName", e)
             WebAppQueryRequest.RESULT_INTERNAL_ERROR
         }
     }

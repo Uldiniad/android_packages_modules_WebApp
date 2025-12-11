@@ -367,8 +367,8 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         return prefixedString.substring(0, min(prefixedString.length, PACKAGE_NAME_MAX_LENGTH))
     }
 
-    suspend fun queryPackage(packageName: String): Int {
-        return keyStore.queryPackage(context.packageManager, packageName)
+    suspend fun queryPackage(packageName: String, callingUid: Int): Int {
+        return keyStore.queryPackage(context.packageManager, packageName, callingUid)
     }
 
     companion object {

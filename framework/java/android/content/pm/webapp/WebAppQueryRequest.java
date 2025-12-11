@@ -52,21 +52,42 @@ public class WebAppQueryRequest {
     @Retention(SOURCE)
     public @interface ResultCode {}
 
-    /** The queried package is installed and is visible to the calling app. */
+    /**
+     * The queried package is installed by {@link WebAppManager} and any of the following apply:
+     *
+     * <ul>
+     *   <li>The calling app holds {@link android.Manifest.permission#QUERY_ALL_PACKAGES}
+     *       permission.
+     *   <li>The package was installed by the calling app via {@link WebAppManager}.
+     * </ul>
+     */
     public static final int RESULT_INSTALLED = 0;
 
-    /** The queried package is not installed or is not visible to the calling app. */
+    /**
+     * The queried package is not installed by {@link WebAppManager}.
+     *
+     * <p>This result is returned if and only if:
+     *
+     * <ul>
+     *   <li>The calling app holds {@link android.Manifest.permission#QUERY_ALL_PACKAGES}
+     *       permission.
+     *   <li>The package is not installed by {@link WebAppManager}.
+     * </ul>
+     */
     public static final int RESULT_NOT_INSTALLED = 1;
 
     /** The query failed due to an internal system error. */
     public static final int RESULT_INTERNAL_ERROR = 2;
 
     /**
-     * The calling app does not have the necessary permission to query Web Apps.
+     * The calling app does not have the necessary permissions to query this package.
      *
-     * <p>This result is returned if the caller does not hold the {@link
-     * android.Manifest.permission#QUERY_ALL_PACKAGES} permission, or if the caller is a browser but
-     * the Web App was not installed by it.
+     * <p>This result is returned if any of the following apply:
+     *
+     * <ul>
+     *   <li>The package is not visible to the calling app.
+     *   <li>The package was not installed by the calling app.
+     * </ul>
      */
     public static final int RESULT_PERMISSION_DENIED = 3;
 
