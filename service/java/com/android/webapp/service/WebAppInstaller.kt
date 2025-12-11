@@ -26,6 +26,7 @@ import android.util.Log
 import android.webkit.URLUtil
 import com.android.webapp.service.minter.ApkInfo
 import com.android.webapp.service.minter.ApkKeyStore
+import com.google.common.xml.XmlEscapers
 import com.android.webapp.service.minter.ApkMinter
 import com.android.webapp.service.model.InstallRequest
 import com.android.webapp.service.model.PwaManifest
@@ -331,24 +332,28 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                     DEFAULT_ORIENTATION
                 }
 
-        // TODO(b/448503528): Escape strings for XML
+        val xmlAttributeEscaper = XmlEscapers.xmlAttributeEscaper()
+        // All string fields must be escaped to be safely written to the AndroidManifest.xml.
         return ApkInfo(
-            appName = appName,
-            packageName = generatePackageName(request.callingPackage, request.manifestUrl),
-            manifestUrl = request.manifestUrl,
-            startUrl = startUrl,
-            hostName = manifestUri.host,
-            sdkVersion = APK_SDK_VERSION,
+            appName = xmlAttributeEscaper.escape(appName),
+            packageName =
+                xmlAttributeEscaper.escape(
+                    generatePackageName(request.callingPackage, request.manifestUrl)
+                ),
+            manifestUrl = xmlAttributeEscaper.escape(request.manifestUrl),
+            startUrl = xmlAttributeEscaper.escape(startUrl),
+            hostName = xmlAttributeEscaper.escape(manifestUri.host),
+            sdkVersion = xmlAttributeEscaper.escape(APK_SDK_VERSION),
             displayModeFullscreen = displayMode == "fullscreen",
             displayModeFullscreenSticky = displayMode == "fullscreen-sticky",
             displayModeMinimalUi = displayMode == "minimal-ui",
             displayModeBrowser = displayMode == "browser",
-            backgroundColor = backgroundColor,
-            themeColor = themeColor,
-            themeColorDark = themeColorDark,
-            navigationColor = navigationColor,
-            navigationColorDark = navigationColorDark,
-            orientation = orientation,
+            backgroundColor = xmlAttributeEscaper.escape(backgroundColor),
+            themeColor = xmlAttributeEscaper.escape(themeColor),
+            themeColorDark = xmlAttributeEscaper.escape(themeColorDark),
+            navigationColor = xmlAttributeEscaper.escape(navigationColor),
+            navigationColorDark = xmlAttributeEscaper.escape(navigationColorDark),
+            orientation = xmlAttributeEscaper.escape(orientation),
         )
     }
 

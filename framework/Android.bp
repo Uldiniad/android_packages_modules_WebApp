@@ -12,8 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+team {
+    name: "trendy_team_desktop_native_framework",
+
+    // go/trendy/manage/engineers/4941271648272384
+    trendy_team_id: "4941271648272384",
+}
+
 package {
     default_applicable_licenses: ["Android-Apache-2.0"],
+    default_team: "trendy_team_desktop_native_framework",
 }
 
 aidl_interface {
