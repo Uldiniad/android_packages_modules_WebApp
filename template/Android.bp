@@ -52,6 +52,7 @@ genrule {
     device_common_srcs: [
         "AndroidManifest.xml.mustache",
         "colors.xml.mustache",
+        "ic_launcher.xml",
         // This comment prevents bpfmt from sorting the files incorrectly.
         ":WebAppTemplate",
         ":WebAppTemplate{.res-ids.txt}",

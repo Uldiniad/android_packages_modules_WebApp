@@ -39,4 +39,14 @@ data class PwaManifest(
     @SerialName("navigation_color") val navigationColor: String? = null,
     @SerialName("navigation_color_dark") val navigationColorDark: String? = null,
     @SerialName("orientation") val orientation: String? = null,
+    @SerialName("icons") val icons: List<PwaManifestIcon>? = null,
+)
+
+@Keep // Prevent this class from being optimized out by R8.
+@Serializable
+data class PwaManifestIcon(
+    val src: String? = null,
+    val type: String? = null,
+    val sizes: String? = null,
+    val purpose: String? = null,
 )

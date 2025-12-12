@@ -33,4 +33,12 @@ data class ApkInfo(
     val navigationColor: String,
     val navigationColorDark: String,
     val orientation: String,
+    val icons: List<ManifestIcon>,
+)
+
+data class ManifestIcon(
+    val src: String?,
+    val type: String?,
+    val sizes: List<Pair<Int, Int>>,
+    val purpose: Set<String>,
 )
