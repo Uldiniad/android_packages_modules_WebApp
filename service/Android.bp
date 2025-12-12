@@ -70,6 +70,13 @@ android_app {
     updatable: true,
     apex_available: ["com.android.webapp"],
 
+    // Enable aggressive optimization to reduce package size
+    optimize: {
+        optimize: true,
+        shrink: true,
+        shrink_resources: true,
+    },
+
     licenses: [
         "Android-Apache-2.0",
         "opensourcerequest",

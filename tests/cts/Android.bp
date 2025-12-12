@@ -1,4 +1,3 @@
-//
 // Copyright (C) 2025 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,22 +11,46 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
 
+// WebApp MTS-only tests i.e. not part of CTS or GTS
+// Used to test functionality that is only guaranteed to be implemented in the WebApp Mainline module,
+// but is not required if the WebApp Mainline module is not present on the device.
 package {
-    default_applicable_licenses: ["Android-Apache-2.0"],
     default_team: "trendy_team_desktop_native_framework",
+    default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
 android_test {
     name: "MtsWebAppTestCases",
-    platform_apis: true,
-    min_sdk_version: "37",
-    sdk_version: "test_current",
+    defaults: ["cts_defaults"],
 
-    // Tag this module as an mts test artifact
+    min_sdk_version: "36",
+    sdk_version: "test_current",
+    compile_multilib: "both",
+
+    libs: [
+        "android.test.base.stubs",
+        "org.apache.http.legacy.stubs.system",
+    ],
+
+    srcs: ["src/**/*.java"],
+
+    static_libs: [
+        "ctstestrunner-axt",
+        "ctstestserver",
+        "junit",
+        "junit-params",
+        "truth",
+        // for AndroidJUnit4
+        "androidx.test.ext.junit",
+        "androidx.test.runner",
+    ],
+
+    // need to eventually invoke WebApp, so must have this
+    platform_apis: true,
     test_suites: [
         "general-tests",
         "mts-webapp",
     ],
+    test_config: "AndroidTest.xml",
 }

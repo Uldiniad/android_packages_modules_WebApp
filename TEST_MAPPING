@@ -1,0 +1,17 @@
+{
+  "presubmit": [
+    {
+      "name": "MtsWebAppTestCases"
+    }
+  ],
+  "mainline-presubmit": [
+    {
+      "name": "MtsWebAppTestCases[com.google.android.webapp.apex]"
+    }
+  ],
+  "webapp-mainline-presubmit": [
+    {
+      "name": "MtsWebAppTestCases"
+    }
+  ]
+}
