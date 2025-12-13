@@ -28,14 +28,15 @@ Expected args in order:
 1. webapp-template.zip: The output zip template bundle
 2. AndroidManifest.xml.mustache: The AndroidManifest.xml Mustache template
 3. colors.xml.mustache: The colors.xml Mustache template
-4. WebAppTemplate.apk: The template APK containing classes.dex
-5. res-ids.txt: The stable resource IDs file
-6+. res/...: One or more resource files
+4. ic_launcher.xml: The adaptive icon xml
+5. WebAppTemplate.apk: The template APK containing classes.dex
+6. res-ids.txt: The stable resource IDs file
+7+. res/...: One or more resource files
 ''', file=sys.stderr)
     sys.exit(1)
 
 def main():
-    if len(sys.argv) < 6:
+    if len(sys.argv) < 7:
         print(f'There are no enough args', file=sys.stderr)
         print_usage_and_exit()
 
@@ -54,20 +55,25 @@ def main():
         print(f'Arg 3 must be colors.xml.mustache, but is {colors_xml}', file=sys.stderr)
         print_usage_and_exit()
 
-    template_apk = sys.argv[4]
+    ic_launcher = sys.argv[4]
+    if os.path.basename(ic_launcher) != 'ic_launcher.xml':
+        print(f'Arg 4 must be ic_launcher.xml, but is {ic_launcher}', file=sys.stderr)
+        print_usage_and_exit()
+
+    template_apk = sys.argv[5]
     if os.path.basename(template_apk) != 'WebAppTemplate.apk':
-        print(f'Arg 4 must be WebAppTemplate.apk, but is {template_apk}', file=sys.stderr)
+        print(f'Arg 5 must be WebAppTemplate.apk, but is {template_apk}', file=sys.stderr)
         print_usage_and_exit()
 
-    res_ids = sys.argv[5]
+    res_ids = sys.argv[6]
     if os.path.basename(res_ids) != 'res-ids.txt':
-        print(f'Arg 5 must be res-ids.txt, but is {res_ids}', file=sys.stderr)
+        print(f'Arg 6 must be res-ids.txt, but is {res_ids}', file=sys.stderr)
         print_usage_and_exit()
 
-    res_files = sys.argv[6:]
+    res_files = sys.argv[7:]
     for res_file in res_files:
         if res_file.split('/')[-3] != 'res':
-            print(f'Args starting from 6 must be res files, but got {res_file}', file=sys.stderr)
+            print(f'Args starting from 7 must be res files, but got {res_file}', file=sys.stderr)
             print_usage_and_exit()
 
     with zipfile.ZipFile(out_zip, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as out:
@@ -75,15 +81,18 @@ def main():
         out.write(android_manifest, 'AndroidManifest.xml.mustache')
         out.write(colors_xml, 'colors.xml.mustache')
 
-        # 2. res-ids.txt for stable resource IDs
+        # 2. ic_launcher.xml for adaptive icon
+        out.write(ic_launcher, 'ic_launcher.xml')
+
+        # 3. res-ids.txt for stable resource IDs
         out.write(res_ids, 'res-ids.txt')
 
-        # 3. classes.dex from WebAppTemplate.apk
+        # 4. classes.dex from WebAppTemplate.apk
         with zipfile.ZipFile(template_apk, 'r') as template_zip:
             with template_zip.open('classes.dex') as classes_dex:
                 out.writestr('classes.dex', classes_dex.read())
 
-        # 4. All res resources
+        # 5. All res resources
         for res_file in res_files:
             # We want to store them as `res/...` in the zip.
             arcname = os.path.join('res', *res_file.split(os.path.sep)[-2:])

@@ -26,11 +26,12 @@ import android.util.Log
 import android.webkit.URLUtil
 import com.android.webapp.service.minter.ApkInfo
 import com.android.webapp.service.minter.ApkKeyStore
-import com.google.common.xml.XmlEscapers
 import com.android.webapp.service.minter.ApkMinter
+import com.android.webapp.service.minter.ManifestIcon
 import com.android.webapp.service.model.InstallRequest
 import com.android.webapp.service.model.PwaManifest
 import com.android.webapp.service.view.InstallConfirmActivity
+import com.google.common.xml.XmlEscapers
 import java.io.File
 import java.io.FileInputStream
 import java.net.HttpURLConnection
@@ -111,6 +112,12 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                     return
                 }
         val apkInfo = generateApkInfo(request, manifest)
+        // TODO: Add fallback to handle the case where icons are not provided in the manifest.
+        if (apkInfo.icons.isEmpty()) {
+            Log.e(TAG, "No icons found in the manifest")
+            request.callback.onInstallResult(WebAppInstallRequest.RESULT_INVALID_ARGUMENTS, null)
+            return
+        }
         val packageName = apkInfo.packageName
 
         if (!waitForUserConfirm(request, apkInfo)) {
@@ -129,6 +136,16 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
             if (!workingDir.mkdirs()) {
                 Log.e(TAG, "Failed to create working directory")
                 request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+                return
+            }
+
+            if (!downloadIcons(apkInfo.icons, workingDir)) {
+                // TODO: Add fallback to handle the case where icons are not downloaded successfully.
+                Log.e(TAG, "Failed to download icons")
+                request.callback.onInstallResult(
+                    WebAppInstallRequest.RESULT_NETWORK_ERROR,
+                    null,
+                )
                 return
             }
 
@@ -332,6 +349,8 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                     DEFAULT_ORIENTATION
                 }
 
+        val icons = parseIcons(manifest, manifestUri)
+
         val xmlAttributeEscaper = XmlEscapers.xmlAttributeEscaper()
         // All string fields must be escaped to be safely written to the AndroidManifest.xml.
         return ApkInfo(
@@ -354,6 +373,7 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
             navigationColor = xmlAttributeEscaper.escape(navigationColor),
             navigationColorDark = xmlAttributeEscaper.escape(navigationColorDark),
             orientation = xmlAttributeEscaper.escape(orientation),
+            icons = icons,
         )
     }
 
@@ -365,6 +385,113 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         val hexString = hashBytes.joinToString("") { "%02x".format(it) }
         val prefixedString = PACKAGE_NAME_PREFIX + hexString
         return prefixedString.substring(0, min(prefixedString.length, PACKAGE_NAME_MAX_LENGTH))
+    }
+
+    private fun downloadIcons(icons: List<ManifestIcon>, workingDir: File): Boolean {
+        val iconsDir = File(workingDir, "icons")
+        if (!iconsDir.exists() && !iconsDir.mkdirs()) {
+            Log.e(TAG, "Failed to create icons directory")
+            return false
+        }
+
+        var anySuccess = false
+        for (icon in icons) {
+            if (icon.src.isNullOrEmpty()) {
+                continue
+            }
+
+            for (size in icon.sizes) {
+                val density = getDensityForSize(size.first)
+                val destDir = File(iconsDir, "res/mipmap-$density")
+                if (!destDir.exists() && !destDir.mkdirs()) continue
+
+                if (icon.purpose.any { it.equals("monochrome", ignoreCase = true) }) {
+                    if (downloadIcon(icon.src, File(destDir, "ic_notification.png"))) {
+                        anySuccess = true
+                    }
+                }
+
+                if (icon.purpose.any { it.equals("maskable", ignoreCase = true) }) {
+                    if (downloadIcon(icon.src, File(destDir, "ic_launcher_foreground.png"))) {
+                        anySuccess = true
+                    }
+                }
+
+                if (
+                    icon.purpose.isEmpty() ||
+                        icon.purpose.any { it.equals("any", ignoreCase = true) }
+                ) {
+                    if (downloadIcon(icon.src, File(destDir, "ic_launcher.png"))) {
+                        anySuccess = true
+                    }
+                }
+            }
+        }
+        return anySuccess
+    }
+
+    private fun getDensityForSize(size: Int): String {
+        return when {
+            size >= 192 -> "xxxhdpi"
+            size >= 144 -> "xxhdpi"
+            size >= 96 -> "xhdpi"
+            size >= 72 -> "hdpi"
+            else -> "mdpi"
+        }
+    }
+
+    private fun downloadIcon(urlStr: String, destFile: File): Boolean {
+        var connection: HttpURLConnection? = null
+        try {
+            val url = URL(urlStr)
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connect()
+
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                return false
+            }
+
+            connection.inputStream.use { input ->
+                destFile.outputStream().use { output -> input.copyTo(output) }
+            }
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error downloading icon", e)
+            return false
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    private fun parseIcons(manifest: PwaManifest, manifestUri: URI): List<ManifestIcon> {
+        return manifest.icons?.mapNotNull { icon ->
+            val src = icon.src
+            val resolvedSrc =
+                if (URLUtil.isNetworkUrl(src)) {
+                    src
+                } else {
+                    manifestUri.resolve(src).toString()
+                }
+
+            val sizes =
+                icon.sizes?.split(" ")?.mapNotNull { size ->
+                    val parts = size.split("x")
+                    if (parts.size == 2) {
+                        try {
+                            parts[0].toInt() to parts[1].toInt()
+                        } catch (e: NumberFormatException) {
+                            null
+                        }
+                    } else {
+                        null
+                    }
+                } ?: emptyList()
+
+            val purpose = icon.purpose?.split(" ")?.toSet() ?: emptySet()
+
+            ManifestIcon(src = resolvedSrc, type = icon.type, sizes = sizes, purpose = purpose)
+        } ?: emptyList()
     }
 
     suspend fun queryPackage(packageName: String, callingUid: Int): Int {

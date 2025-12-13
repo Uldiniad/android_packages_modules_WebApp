@@ -143,8 +143,63 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
             return null
         }
 
-        // TODO(b/447493504): Modify app icon
+        if (!processIcons(unpackedTemplateDir)) {
+            Log.e(TAG, "Failed to process icons")
+            return null
+        }
+
         return manifestFile
+    }
+
+    private fun processIcons(unpackedTemplateDir: File): Boolean {
+        val iconsDir = File(workingDir, "icons")
+        var hasMaskableIcon = false
+        if (iconsDir.exists()) {
+            iconsDir.walkTopDown().forEach { source ->
+                if (source.isFile) {
+                    if (source.name == "ic_launcher_foreground.png") {
+                        hasMaskableIcon = true
+                    }
+                    val relativePath = source.relativeTo(iconsDir)
+                    val dest = File(unpackedTemplateDir, relativePath.path)
+                    if (!dest.parentFile.exists()) {
+                        dest.parentFile.mkdirs()
+                    }
+                    try {
+                        Files.copy(
+                            source.toPath(),
+                            dest.toPath(),
+                            StandardCopyOption.REPLACE_EXISTING
+                        )
+                    } catch (e: IOException) {
+                        Log.e(TAG, "Failed to copy icon resource $source", e)
+                        return false
+                    }
+                }
+            }
+        }
+
+        // Maskable icons are used for the adaptive app icon.
+        if (hasMaskableIcon) {
+            val adaptiveIconXml = File(unpackedTemplateDir, "ic_launcher.xml")
+            if (adaptiveIconXml.exists()) {
+                val destIconXml = File(unpackedTemplateDir, "res/mipmap-anydpi/ic_launcher.xml")
+                if (!destIconXml.parentFile.exists()) {
+                    destIconXml.parentFile.mkdirs()
+                }
+                try {
+                    Files.copy(
+                        adaptiveIconXml.toPath(),
+                        destIconXml.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING,
+                    )
+                } catch (e: IOException) {
+                    Log.e(TAG, "Failed to copy ic_launcher.xml", e)
+                    return false
+                }
+            }
+        }
+        return true
     }
 
     private fun compileResources(unpackedTemplateDir: File): File? {
