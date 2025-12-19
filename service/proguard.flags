@@ -1,0 +1,7 @@
+# Keep AIDL interfaces
+-keep class com.android.webapp.IWebAppInstallCallback* {
+    *;
+}
+-keep class com.android.webapp.IWebAppQueryCallback* {
+    *;
+}
