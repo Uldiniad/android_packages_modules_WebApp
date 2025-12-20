@@ -21,5 +21,7 @@
         <permission name="android.permission.START_ACTIVITIES_FROM_BACKGROUND" />
         <!-- Required to install APKs without showing the system install dialog. -->
         <permission name="android.permission.INSTALL_PACKAGES" />
+        <!-- Required to substitute app name in notifications with the calling app. -->
+        <permission name="android.permission.SUBSTITUTE_NOTIFICATION_APP_NAME" />
     </privapp-permissions>
 </permissions>

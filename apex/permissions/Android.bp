@@ -16,3 +16,14 @@ filegroup {
     name: "privapp_allowlist_com.android.webapp.service.xml",
     srcs: ["com.android.webapp.service.xml"],
 }
+
+prebuilt_etc {
+    enabled: select(release_flag("RELEASE_WEBAPP_MODULE"), {
+        true: true,
+        false: false,
+    }),
+
+    name: "default-permissions-webapp.xml",
+    relative_install_path: "default-permissions",
+    src: "default-permissions-webapp.xml",
+}
