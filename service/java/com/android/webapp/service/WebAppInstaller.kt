@@ -30,6 +30,7 @@ import android.content.pm.webapp.WebAppInstallRequest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.os.Trace
 import android.util.Log
 import android.webkit.URLUtil
 import androidx.core.graphics.scale
@@ -51,6 +52,7 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -120,10 +122,14 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
 
     private suspend fun processQueue() {
         for (request in processingChannel) {
+            // Generate a random integer as cookie for performance trace.
+            val cookie = Random.nextInt()
+            Trace.beginAsyncSection(INSTALL_TRACE_NAME, cookie)
             try {
                 performInstall(request)
             } finally {
                 mutex.withLock {
+                    Trace.endAsyncSection(INSTALL_TRACE_NAME, cookie)
                     installRequests.remove(request)
                     // If the requests queue is empty, shut down the service.
                     if (installRequests.isEmpty()) {
@@ -801,7 +807,14 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
     }
 
     suspend fun queryPackage(packageName: String, callingUid: Int): Int {
-        return keyStore.queryPackage(context.packageManager, packageName, callingUid)
+        // Generate a random integer as cookie for performance trace.
+        val cookie = Random.nextInt()
+        Trace.beginAsyncSection(QUERY_TRACE_NAME, cookie)
+        try {
+            return keyStore.queryPackage(context.packageManager, packageName, callingUid)
+        } finally {
+            Trace.endAsyncSection(QUERY_TRACE_NAME, cookie)
+        }
     }
 
     companion object {
@@ -821,6 +834,8 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         private const val MAX_QUEUE_LENGTH = 1000
         private const val PACKAGE_MANAGER_TIMEOUT_SECONDS = 600L
         private const val NOTIFICATION_CHANNEL_ID = "web_app_installation"
+        private const val INSTALL_TRACE_NAME = "PerformWebAppInstall"
+        private const val QUERY_TRACE_NAME = "PerformWebAppQuery"
 
         /**
          * Loads an image from a [File] while capping its maximum size at [maxDim]. It's used to
