@@ -34,5 +34,5 @@ object InstallContinuationManager {
      * The continuations for waiting for package manager installation result. The key is the unique
      * session ID provided by the package manager.
      */
-    val pmContinuations = ConcurrentHashMap<Int, Continuation<Int>>()
+    val pmContinuations = ConcurrentHashMap<Int, Continuation<Pair<Int, String?>>>()
 }

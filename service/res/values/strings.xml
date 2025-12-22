@@ -22,8 +22,32 @@
     <string name="install_confirm_title">Install <xliff:g id="app_name" example="My Web App">%1$s</xliff:g>?</string>
     <!-- [CHAR LIMIT=NONE] Message asking user to trust the invoking app to install the web app from a specific URL. -->
     <string name="install_confirm_message">Do you trust <xliff:g id="invoking_app_name" example="Browser">%1$s</xliff:g> to install the app from:\n<xliff:g id="start_url" example="https://www.android.com/">%2$s</xliff:g></string>
+    <!-- [CHAR LIMIT=60] Description of the app icon displayed in the install confirmation dialog. -->
+    <string name="install_confirm_icon_description">App icon for <xliff:g id="app_name" example="My Web App">%1$s</xliff:g></string>
     <!-- [CHAR LIMIT=20] Label for the install button. -->
     <string name="install_confirm_button_install">Install</string>
     <!-- [CHAR LIMIT=20] Label for the cancel button. -->
     <string name="install_confirm_button_cancel">Cancel</string>
+
+    <!-- [CHAR LIMIT=40] Name of the notification channel for web app installation. -->
+    <string name="notification_channel_name">Web App Installation</string>
+    <!-- [CHAR LIMIT=60] Notification title when getting info about the app. -->
+    <string name="notification_getting_info">Getting info about <xliff:g id="app_name" example="My Web App">%1$s</xliff:g>...</string>
+    <!-- [CHAR LIMIT=60] Notification title when installing the app. -->
+    <string name="notification_installing">Installing <xliff:g id="app_name" example="My Web App">%1$s</xliff:g>...</string>
+    <!-- [CHAR LIMIT=60] Notification title when the app is installed. -->
+    <string name="notification_installed"><xliff:g id="app_name" example="My Web App">%1$s</xliff:g> is installed</string>
+    <!-- [CHAR LIMIT=60] Notification title when the app installation failed. -->
+    <string name="notification_install_failed">Trouble installing <xliff:g id="app_name" example="My Web App">%1$s</xliff:g></string>
+    <!-- [CHAR LIMIT=60] Notification title when the app installation was cancelled. -->
+    <string name="notification_cancelled">Cancelled installing <xliff:g id="app_name" example="My Web App">%1$s</xliff:g></string>
+    <!-- [CHAR LIMIT=20] Label for the launch button in notification. -->
+    <string name="notification_launch">Launch</string>
+    <!-- [CHAR LIMIT=20] Label for the details button in notification. -->
+    <string name="notification_action_details">Details</string>
+    <!-- [CHAR LIMIT=20] Label for the got it button in notification. -->
+    <string name="notification_action_got_it">Got it</string>
+
+    <!-- [CHAR LIMIT=60] Title of the error dialog. -->
+    <string name="error_dialog_title">Installation Failed</string>
 </resources>

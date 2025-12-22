@@ -16,29 +16,42 @@
 
 package com.android.webapp.service.view
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.android.webapp.service.R
 
 @Composable
 fun InstallConfirmDialog(
     appName: String,
     startUrl: String,
+    appIcon: Bitmap,
     invokingAppName: String,
     onInstall: () -> Unit,
     onCancel: () -> Unit,
 ) {
     AlertDialog(
-        // TODO(b/447493504O): Add app icon as `Image` from Jetpack Compose
-        icon = null,
+        icon = {
+            Image(
+                bitmap = appIcon.asImageBitmap(),
+                // Add description for accessibility purpose
+                contentDescription =
+                    stringResource(R.string.install_confirm_icon_description, appName),
+                modifier = Modifier.size(64.dp),
+            )
+        },
         title = {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(

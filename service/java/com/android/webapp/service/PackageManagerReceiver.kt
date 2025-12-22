@@ -37,7 +37,9 @@ class PackageManagerReceiver : BroadcastReceiver() {
         val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, -1)
         val statusMessage = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
         Log.i(TAG, "Install result for session ID $sessionId: $status $statusMessage")
-        InstallContinuationManager.pmContinuations.remove(sessionId)?.resume(status)
+        InstallContinuationManager.pmContinuations
+            .remove(sessionId)
+            ?.resume(Pair(status, statusMessage))
     }
 
     companion object {
