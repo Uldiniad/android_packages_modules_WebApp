@@ -16,14 +16,24 @@
 
 package com.android.webapp.service
 
+import android.annotation.StringRes
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageInstaller
 import android.content.pm.PackageManager
 import android.content.pm.webapp.WebAppInstallRequest
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.os.Bundle
+import android.os.Trace
 import android.util.Log
 import android.webkit.URLUtil
+import androidx.core.graphics.scale
 import com.android.webapp.service.minter.ApkInfo
 import com.android.webapp.service.minter.ApkKeyStore
 import com.android.webapp.service.minter.ApkMinter
@@ -31,6 +41,7 @@ import com.android.webapp.service.minter.ManifestIcon
 import com.android.webapp.service.model.InstallRequest
 import com.android.webapp.service.model.PwaManifest
 import com.android.webapp.service.view.InstallConfirmActivity
+import com.android.webapp.service.view.InstallErrorActivity
 import com.google.common.xml.XmlEscapers
 import java.io.File
 import java.io.FileInputStream
@@ -39,7 +50,9 @@ import java.net.URI
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -62,8 +75,28 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
 
     private val keyStore: ApkKeyStore by lazy { ApkKeyStore() }
 
+    private val notificationManager =
+        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
     init {
+        createNotificationChannel()
         scope.launch { processQueue() }
+    }
+
+    enum class NotificationType {
+        IN_PROGRESS,
+        SUCCESS,
+        FAILURE,
+    }
+
+    private fun createNotificationChannel() {
+        val channel =
+            NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                context.getString(R.string.notification_channel_name),
+                NotificationManager.IMPORTANCE_DEFAULT,
+            )
+        notificationManager.createNotificationChannel(channel)
     }
 
     /**
@@ -89,16 +122,35 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
 
     private suspend fun processQueue() {
         for (request in processingChannel) {
+            // Generate a random integer as cookie for performance trace.
+            val cookie = Random.nextInt()
+            Trace.beginAsyncSection(INSTALL_TRACE_NAME, cookie)
             try {
                 performInstall(request)
             } finally {
-                mutex.withLock { installRequests.remove(request) }
+                mutex.withLock {
+                    Trace.endAsyncSection(INSTALL_TRACE_NAME, cookie)
+                    installRequests.remove(request)
+                    // If the requests queue is empty, shut down the service.
+                    if (installRequests.isEmpty()) {
+                        Log.i(TAG, "Shutting down the service due to empty install queue")
+                        service.stopSelf()
+                    }
+                }
             }
         }
     }
 
     private suspend fun performInstall(request: InstallRequest) {
         Log.i(TAG, "Start installing $request")
+        val notificationId = request.hashCode()
+        updateNotification(
+            type = NotificationType.IN_PROGRESS,
+            notificationId = notificationId,
+            callingAppName = request.callingAppName,
+            appName = request.appName,
+            messageId = R.string.notification_getting_info,
+        )
 
         // TODO(b/448503528): Parse manifest properly
         val manifest =
@@ -109,42 +161,105 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                         WebAppInstallRequest.RESULT_NETWORK_ERROR,
                         null,
                     )
+                    updateNotification(
+                        type = NotificationType.FAILURE,
+                        notificationId = notificationId,
+                        callingAppName = request.callingAppName,
+                        appName = request.appName,
+                        messageId = R.string.notification_install_failed,
+                        errorMessage = "Failed to fetch and parse manifest",
+                    )
                     return
                 }
         val apkInfo = generateApkInfo(request, manifest)
+        val packageName = apkInfo.packageName
+        val appName = apkInfo.appName
+
         // TODO: Add fallback to handle the case where icons are not provided in the manifest.
         if (apkInfo.icons.isEmpty()) {
             Log.e(TAG, "No icons found in the manifest")
             request.callback.onInstallResult(WebAppInstallRequest.RESULT_INVALID_ARGUMENTS, null)
-            return
-        }
-        val packageName = apkInfo.packageName
-
-        if (!waitForUserConfirm(request, apkInfo)) {
-            Log.w(TAG, "User cancelled installation")
-            request.callback.onInstallResult(WebAppInstallRequest.RESULT_CANCELLED_BY_USER, null)
+            updateNotification(
+                type = NotificationType.FAILURE,
+                notificationId = notificationId,
+                callingAppName = request.callingAppName,
+                appName = appName,
+                messageId = R.string.notification_install_failed,
+                errorMessage = "No icons found in the manifest",
+            )
             return
         }
 
         val workingDir = File(context.cacheDir, packageName)
+        var appIcon: Bitmap? = null
         try {
             if (workingDir.exists() && !workingDir.deleteRecursively()) {
                 Log.e(TAG, "Failed to delete existing working directory")
                 request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+                updateNotification(
+                    type = NotificationType.FAILURE,
+                    notificationId = notificationId,
+                    callingAppName = request.callingAppName,
+                    appName = appName,
+                    messageId = R.string.notification_install_failed,
+                    errorMessage = "Failed to delete existing working directory",
+                )
                 return
             }
             if (!workingDir.mkdirs()) {
                 Log.e(TAG, "Failed to create working directory")
                 request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+                updateNotification(
+                    type = NotificationType.FAILURE,
+                    notificationId = notificationId,
+                    callingAppName = request.callingAppName,
+                    appName = appName,
+                    messageId = R.string.notification_install_failed,
+                    errorMessage = "Failed to create working directory",
+                )
                 return
             }
 
-            if (!downloadIcons(apkInfo.icons, workingDir)) {
-                // TODO: Add fallback to handle the case where icons are not downloaded successfully.
+            val downloadIconsResult = downloadIcons(apkInfo.icons, workingDir)
+            appIcon = downloadIconsResult.second
+            if (!downloadIconsResult.first || appIcon == null) {
+                // TODO: Add fallback to handle the case where icons are not downloaded
+                // successfully.
                 Log.e(TAG, "Failed to download icons")
+                request.callback.onInstallResult(WebAppInstallRequest.RESULT_NETWORK_ERROR, null)
+                updateNotification(
+                    type = NotificationType.FAILURE,
+                    notificationId = notificationId,
+                    callingAppName = request.callingAppName,
+                    appName = appName,
+                    messageId = R.string.notification_install_failed,
+                    errorMessage = "Failed to download icons",
+                )
+                return
+            }
+
+            updateNotification(
+                type = NotificationType.IN_PROGRESS,
+                notificationId = notificationId,
+                callingAppName = request.callingAppName,
+                appName = appName,
+                messageId = R.string.notification_installing,
+                largeIcon = appIcon,
+            )
+
+            if (!waitForUserConfirm(request, apkInfo, appIcon)) {
+                Log.w(TAG, "User cancelled installation")
                 request.callback.onInstallResult(
-                    WebAppInstallRequest.RESULT_NETWORK_ERROR,
+                    WebAppInstallRequest.RESULT_CANCELLED_BY_USER,
                     null,
+                )
+                updateNotification(
+                    type = NotificationType.FAILURE,
+                    notificationId = notificationId,
+                    callingAppName = request.callingAppName,
+                    appName = appName,
+                    messageId = R.string.notification_cancelled,
+                    largeIcon = appIcon,
                 )
                 return
             }
@@ -156,6 +271,15 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                         request.callback.onInstallResult(
                             WebAppInstallRequest.RESULT_INTERNAL_ERROR,
                             null,
+                        )
+                        updateNotification(
+                            type = NotificationType.FAILURE,
+                            notificationId = notificationId,
+                            callingAppName = request.callingAppName,
+                            appName = appName,
+                            messageId = R.string.notification_install_failed,
+                            largeIcon = appIcon,
+                            errorMessage = "Failed to mint APK",
                         )
                         return
                     }
@@ -171,17 +295,47 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                             WebAppInstallRequest.RESULT_INTERNAL_ERROR,
                             null,
                         )
+                        updateNotification(
+                            type = NotificationType.FAILURE,
+                            notificationId = notificationId,
+                            callingAppName = request.callingAppName,
+                            appName = appName,
+                            messageId = R.string.notification_install_failed,
+                            largeIcon = appIcon,
+                            errorMessage = "Timed out waiting for package manager",
+                        )
                         return
                     }
+            val statusCode = installResult.first
+            val errorMessage = installResult.second
 
-            if (installResult != PackageInstaller.STATUS_SUCCESS) {
-                Log.e(TAG, "Failed to install APK: $installResult")
+            if (statusCode != PackageInstaller.STATUS_SUCCESS) {
+                Log.e(TAG, "Failed to install APK: $statusCode\nError message: $errorMessage")
                 request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+                updateNotification(
+                    type = NotificationType.FAILURE,
+                    notificationId = notificationId,
+                    callingAppName = request.callingAppName,
+                    appName = appName,
+                    messageId = R.string.notification_install_failed,
+                    largeIcon = appIcon,
+                    errorMessage =
+                        "Failed to install APK: $statusCode\nError message: $errorMessage",
+                )
                 return
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to mint and install APK", e)
             request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
+            updateNotification(
+                type = NotificationType.FAILURE,
+                notificationId = notificationId,
+                callingAppName = request.callingAppName,
+                appName = appName,
+                messageId = R.string.notification_install_failed,
+                largeIcon = appIcon,
+                errorMessage = "Failed to mint and install APK",
+            )
             return
         } finally {
             if (!workingDir.deleteRecursively()) {
@@ -191,7 +345,143 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
 
         Log.i(TAG, "Successfully installed $packageName for $request")
         request.callback.onInstallResult(WebAppInstallRequest.RESULT_SUCCESS, packageName)
+        updateNotification(
+            type = NotificationType.SUCCESS,
+            notificationId = notificationId,
+            callingAppName = request.callingAppName,
+            appName = appName,
+            messageId = R.string.notification_installed,
+            largeIcon = appIcon,
+            packageName = packageName,
+        )
         return
+    }
+
+    private fun updateNotification(
+        type: NotificationType,
+        notificationId: Int,
+        callingAppName: CharSequence,
+        appName: String,
+        @StringRes messageId: Int,
+        largeIcon: Bitmap? = null,
+        packageName: String? = null,
+        errorMessage: String? = null,
+    ) {
+        val builder =
+            Notification.Builder(context, NOTIFICATION_CHANNEL_ID).apply {
+                when (type) {
+                    NotificationType.IN_PROGRESS -> {
+                        setOngoing(true)
+                        setSmallIcon(android.R.drawable.stat_sys_download)
+                    }
+                    NotificationType.SUCCESS ->
+                        let {
+                            setOngoing(false)
+                            setSmallIcon(android.R.drawable.stat_sys_download_done)
+
+                            // Add Launch button for successful cases
+                            val packageName =
+                                packageName
+                                    ?: run {
+                                        Log.wtf(
+                                            TAG,
+                                            "Package name is null for successful installations",
+                                        )
+                                        return@let
+                                    }
+                            val launchIntent =
+                                context.packageManager.getLaunchIntentForPackage(packageName)
+                            if (launchIntent != null) {
+                                val pendingIntent =
+                                    PendingIntent.getActivity(
+                                        context,
+                                        0,
+                                        launchIntent,
+                                        PendingIntent.FLAG_IMMUTABLE,
+                                    )
+                                setContentIntent(pendingIntent)
+                                val action =
+                                    Notification.Action.Builder(
+                                            null,
+                                            context.getString(R.string.notification_launch),
+                                            pendingIntent,
+                                        )
+                                        .build()
+                                addAction(action)
+                            }
+                        }
+                    NotificationType.FAILURE -> {
+                        setOngoing(false)
+                        setSmallIcon(android.R.drawable.stat_notify_error)
+
+                        // Add Details and Got it buttons for failure cases
+                        if (errorMessage != null) {
+                            val detailsIntent =
+                                InstallErrorActivity.createIntent(context, errorMessage).apply {
+                                    setFlags(
+                                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                                            Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                    )
+                                }
+                            val detailsPendingIntent =
+                                PendingIntent.getActivity(
+                                    context,
+                                    0,
+                                    detailsIntent,
+                                    PendingIntent.FLAG_IMMUTABLE or
+                                        PendingIntent.FLAG_UPDATE_CURRENT,
+                                )
+                            val detailsAction =
+                                Notification.Action.Builder(
+                                        null,
+                                        context.getString(R.string.notification_action_details),
+                                        detailsPendingIntent,
+                                    )
+                                    .build()
+                            addAction(detailsAction)
+                        }
+
+                        val dismissIntent =
+                            Intent(context, NotificationReceiver::class.java).apply {
+                                action = NotificationReceiver.ACTION_DISMISS_NOTIFICATION
+                                putExtra(NotificationReceiver.EXTRA_NOTIFICATION_ID, notificationId)
+                            }
+                        val dismissPendingIntent =
+                            PendingIntent.getBroadcast(
+                                context,
+                                0,
+                                dismissIntent,
+                                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                            )
+                        val dismissAction =
+                            Notification.Action.Builder(
+                                    null,
+                                    context.getString(R.string.notification_action_got_it),
+                                    dismissPendingIntent,
+                                )
+                                .build()
+                        addAction(dismissAction)
+                    }
+                }
+
+                if (largeIcon != null) {
+                    setLargeIcon(largeIcon)
+                }
+
+                // Prevent grouping of notifications so that substitute app name still works when
+                // there are multiple notifications.
+                setGroup("group_$notificationId")
+                setContentTitle(context.getString(messageId, appName))
+
+                addExtras(
+                    Bundle().apply {
+                        // Substitute notification app name with the calling app name.
+                        putString(Notification.EXTRA_SUBSTITUTE_APP_NAME, callingAppName.toString())
+                    }
+                )
+            }
+
+        notificationManager.notify(notificationId, builder.build())
     }
 
     /**
@@ -201,25 +491,29 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
      *   installation, dismissed the dialog, or there was a problem processing the request in the
      *   dialog.
      */
-    private suspend fun waitForUserConfirm(request: InstallRequest, apkInfo: ApkInfo): Boolean =
-        suspendCancellableCoroutine { continuation ->
-            InstallContinuationManager.userContinuations[request] = continuation
+    private suspend fun waitForUserConfirm(
+        request: InstallRequest,
+        apkInfo: ApkInfo,
+        appIcon: Bitmap,
+    ): Boolean = suspendCancellableCoroutine { continuation ->
+        InstallContinuationManager.userContinuations[request] = continuation
 
-            val userConfirmIntent =
-                Intent(context, InstallConfirmActivity::class.java).apply {
-                    // TODO(b/447493504O): Provide app icon to the confirmation dialog
-                    putExtra(InstallConfirmActivity.EXTRA_INSTALL_REQUEST, request.toBundle())
-                    putExtra(InstallConfirmActivity.EXTRA_APP_NAME, apkInfo.appName)
-                    putExtra(InstallConfirmActivity.EXTRA_APP_START_URL, apkInfo.startUrl)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            service.startActivity(userConfirmIntent)
-
-            continuation.invokeOnCancellation {
-                Log.e(TAG, "Installation for $request cancelled while awaiting user confirmation")
-                InstallContinuationManager.userContinuations.remove(request)
+        val userConfirmIntent =
+            Intent(context, InstallConfirmActivity::class.java).apply {
+                // TODO(b/447493504O): Provide app icon to the confirmation dialog
+                putExtra(InstallConfirmActivity.EXTRA_INSTALL_REQUEST, request.toBundle())
+                putExtra(InstallConfirmActivity.EXTRA_APP_NAME, apkInfo.appName)
+                putExtra(InstallConfirmActivity.EXTRA_APP_START_URL, apkInfo.startUrl)
+                putExtra(InstallConfirmActivity.EXTRA_APP_ICON, appIcon)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
+        service.startActivity(userConfirmIntent)
+
+        continuation.invokeOnCancellation {
+            Log.e(TAG, "Installation for $request cancelled while awaiting user confirmation")
+            InstallContinuationManager.userContinuations.remove(request)
         }
+    }
 
     private fun fetchAndParseManifest(manifestUrl: String): PwaManifest? {
         var connection: HttpURLConnection? = null
@@ -246,11 +540,21 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         }
     }
 
+    /**
+     * Installs the APK specified in [apkFile].
+     *
+     * @param[apkFile] The APK file to install.
+     * @param[packageName] Package name of the APK.
+     * @param[request] The web app installation request.
+     * @return A [Pair] of [Int] and optional [String]. The [Int] is the status code
+     *   [PackageInstaller.EXTRA_STATUS] from [PackageInstaller]. The optional String is the error
+     *   message [PackageInstaller.EXTRA_STATUS_MESSAGE] from [PackageInstaller].
+     */
     private suspend fun installApk(
         apkFile: File,
         packageName: String,
         request: InstallRequest,
-    ): Int = suspendCancellableCoroutine { continuation ->
+    ): Pair<Int, String?> = suspendCancellableCoroutine { continuation ->
         val packageInstaller = context.packageManager.packageInstaller
         val params =
             PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
@@ -387,12 +691,15 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         return prefixedString.substring(0, min(prefixedString.length, PACKAGE_NAME_MAX_LENGTH))
     }
 
-    private fun downloadIcons(icons: List<ManifestIcon>, workingDir: File): Boolean {
+    private fun downloadIcons(icons: List<ManifestIcon>, workingDir: File): Pair<Boolean, Bitmap?> {
         val iconsDir = File(workingDir, "icons")
         if (!iconsDir.exists() && !iconsDir.mkdirs()) {
             Log.e(TAG, "Failed to create icons directory")
-            return false
+            return Pair(false, null)
         }
+
+        // The icon to display in confirmation dialog and install notifications
+        var appIcon: Bitmap? = null
 
         var anySuccess = false
         for (icon in icons) {
@@ -400,7 +707,7 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                 continue
             }
 
-            for (size in icon.sizes) {
+            for (size in icon.sizes.sortedByDescending { it.first * it.second }) {
                 val density = getDensityForSize(size.first)
                 val destDir = File(iconsDir, "res/mipmap-$density")
                 if (!destDir.exists() && !destDir.mkdirs()) continue
@@ -421,13 +728,18 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                     icon.purpose.isEmpty() ||
                         icon.purpose.any { it.equals("any", ignoreCase = true) }
                 ) {
-                    if (downloadIcon(icon.src, File(destDir, "ic_launcher.png"))) {
+                    val destFile = File(destDir, "ic_launcher.png")
+                    if (downloadIcon(icon.src, destFile)) {
                         anySuccess = true
+                        if (appIcon == null) {
+                            appIcon =
+                                decodeSampledBitmapFromFile(destFile, MAX_DISPLAY_APP_ICON_SIZE)
+                        }
                     }
                 }
             }
         }
-        return anySuccess
+        return Pair(anySuccess, appIcon)
     }
 
     private fun getDensityForSize(size: Int): String {
@@ -495,7 +807,14 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
     }
 
     suspend fun queryPackage(packageName: String, callingUid: Int): Int {
-        return keyStore.queryPackage(context.packageManager, packageName, callingUid)
+        // Generate a random integer as cookie for performance trace.
+        val cookie = Random.nextInt()
+        Trace.beginAsyncSection(QUERY_TRACE_NAME, cookie)
+        try {
+            return keyStore.queryPackage(context.packageManager, packageName, callingUid)
+        } finally {
+            Trace.endAsyncSection(QUERY_TRACE_NAME, cookie)
+        }
     }
 
     companion object {
@@ -511,7 +830,50 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         private const val PACKAGE_NAME_PREFIX = "com.android.webapp"
         private const val PACKAGE_NAME_MAX_LENGTH = 150
         private const val TAG = "WebAppInstaller"
+        private const val MAX_DISPLAY_APP_ICON_SIZE = 256
         private const val MAX_QUEUE_LENGTH = 1000
         private const val PACKAGE_MANAGER_TIMEOUT_SECONDS = 600L
+        private const val NOTIFICATION_CHANNEL_ID = "web_app_installation"
+        private const val INSTALL_TRACE_NAME = "PerformWebAppInstall"
+        private const val QUERY_TRACE_NAME = "PerformWebAppQuery"
+
+        /**
+         * Loads an image from a [File] while capping its maximum size at [maxDim]. It's used to
+         * prevent excessive memory usage while loading image files downloaded from the Internet.
+         */
+        private fun decodeSampledBitmapFromFile(file: File, maxDim: Int): Bitmap? {
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.path, options)
+
+            var w = options.outWidth
+            var h = options.outHeight
+            var inSampleSize = 1
+            // Keep dimensions >= maxDim to avoid upscaling later, but reduce memory usage.
+            // We stop when dividing by 2 would make it smaller than maxDim.
+            while (w / 2 >= maxDim && h / 2 >= maxDim) {
+                w /= 2
+                h /= 2
+                inSampleSize *= 2
+            }
+
+            options.inJustDecodeBounds = false
+            options.inSampleSize = inSampleSize
+
+            val bitmap = BitmapFactory.decodeFile(file.path, options) ?: return null
+
+            // If the bitmap is still larger than maxDim (due to power of 2 steps), scale it down
+            // exactly.
+            if (bitmap.width > maxDim || bitmap.height > maxDim) {
+                val scale = maxDim.toFloat() / max(bitmap.width, bitmap.height)
+                val scaledWidth = (bitmap.width * scale).toInt()
+                val scaledHeight = (bitmap.height * scale).toInt()
+                val scaled = bitmap.scale(scaledWidth, scaledHeight)
+                if (scaled != bitmap) {
+                    bitmap.recycle()
+                }
+                return scaled
+            }
+            return bitmap
+        }
     }
 }

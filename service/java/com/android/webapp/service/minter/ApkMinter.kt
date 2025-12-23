@@ -162,14 +162,20 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
                     }
                     val relativePath = source.relativeTo(iconsDir)
                     val dest = File(unpackedTemplateDir, relativePath.path)
-                    if (!dest.parentFile.exists()) {
-                        dest.parentFile.mkdirs()
+                    val parentFile =
+                        dest.parentFile
+                            ?: run {
+                                Log.e(TAG, "Failed to get parent file for $dest")
+                                return false
+                            }
+                    if (!parentFile.exists()) {
+                        parentFile.mkdirs()
                     }
                     try {
                         Files.copy(
                             source.toPath(),
                             dest.toPath(),
-                            StandardCopyOption.REPLACE_EXISTING
+                            StandardCopyOption.REPLACE_EXISTING,
                         )
                     } catch (e: IOException) {
                         Log.e(TAG, "Failed to copy icon resource $source", e)
@@ -184,8 +190,14 @@ class ApkMinter(val keyStore: ApkKeyStore, val workingDir: File, val apkInfo: Ap
             val adaptiveIconXml = File(unpackedTemplateDir, "ic_launcher.xml")
             if (adaptiveIconXml.exists()) {
                 val destIconXml = File(unpackedTemplateDir, "res/mipmap-anydpi/ic_launcher.xml")
-                if (!destIconXml.parentFile.exists()) {
-                    destIconXml.parentFile.mkdirs()
+                val parentFile =
+                    destIconXml.parentFile
+                        ?: run {
+                            Log.e(TAG, "Failed to get parent file for $destIconXml")
+                            return false
+                        }
+                if (!parentFile.exists()) {
+                    parentFile.mkdirs()
                 }
                 try {
                     Files.copy(

@@ -16,6 +16,7 @@
 
 package com.android.webapp.service.view
 
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -57,12 +58,20 @@ class InstallConfirmActivity() : ComponentActivity() {
                     resumeInstall(request, false)
                     return
                 }
+        val appIcon =
+            intent.getParcelableExtra(EXTRA_APP_ICON, Bitmap::class.java)
+                ?: run {
+                    Log.e(TAG, "$EXTRA_APP_ICON is null in intent")
+                    resumeInstall(request, false)
+                    return
+                }
 
         setContent {
             ColorScheme {
                 InstallConfirmDialog(
                     appName = appName,
                     startUrl = startUrl,
+                    appIcon = appIcon,
                     invokingAppName = request.callingAppName.toString(),
                     onInstall = { resumeInstall(request, true) },
                     onCancel = { resumeInstall(request, false) },
@@ -82,5 +91,6 @@ class InstallConfirmActivity() : ComponentActivity() {
         const val EXTRA_INSTALL_REQUEST = "install_request"
         const val EXTRA_APP_NAME = "app_name"
         const val EXTRA_APP_START_URL = "app_start_url"
+        const val EXTRA_APP_ICON = "app_icon"
     }
 }

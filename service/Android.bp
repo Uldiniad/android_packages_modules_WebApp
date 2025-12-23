@@ -44,7 +44,6 @@ android_app {
         "apksig",
         "bouncycastle-webapp",
         "com.android.webapp.flags-aconfig-java",
-        "framework-webapp-aidl-java",
         "guava",
         "jmustache",
         "kotlin-stdlib",
@@ -56,6 +55,7 @@ android_app {
     ],
     libs: [
         "framework-annotations-lib",
+        "framework-webapp-aidl-java",
         "framework-webapp.stubs.module_lib",
     ],
 
@@ -75,6 +75,7 @@ android_app {
         optimize: true,
         shrink: true,
         shrink_resources: true,
+        proguard_flags_files: ["proguard.flags"],
     },
 
     licenses: [

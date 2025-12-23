@@ -30,6 +30,7 @@ import com.android.webapp.IWebAppInstallCallback
 import com.android.webapp.IWebAppQueryCallback
 import com.android.webapp.IWebAppService
 import com.android.webapp.service.model.InstallRequest
+import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -202,6 +203,7 @@ class WebAppService : LifecycleService() {
         super.onDestroy()
         Log.d(TAG, "Service onDestroy")
         installerScope.cancel("Cancelled due to service being shut down")
+        exitProcess(0)
     }
 
     companion object {
