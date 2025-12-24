@@ -608,7 +608,7 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                     DEFAULT_START_URL
                 }
         if (!URLUtil.isNetworkUrl(startUrl)) {
-            startUrl = "${manifestUri.scheme}://${manifestUri.host}${startUrl}"
+            startUrl = manifestUri.resolve(startUrl).toString()
         }
         val displayMode =
             manifest.display
