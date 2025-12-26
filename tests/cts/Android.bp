@@ -33,7 +33,9 @@ android_test {
         "org.apache.http.legacy.stubs.system",
     ],
 
-    srcs: ["src/**/*.java"],
+    srcs: [
+        "src/**/*.kt",
+    ],
 
     static_libs: [
         "compatibility-device-util-axt",
