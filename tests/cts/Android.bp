@@ -21,6 +21,11 @@ package {
 }
 
 android_test {
+    enabled: select(release_flag("RELEASE_WEBAPP_MODULE"), {
+        true: true,
+        false: false,
+    }),
+
     name: "MtsWebAppTestCases",
     defaults: ["cts_defaults"],
 
