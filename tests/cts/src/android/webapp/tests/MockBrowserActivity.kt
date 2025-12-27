@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-package android.webapp.tests;
+package android.webapp.tests
 
-import android.app.Activity;
+import android.app.Activity
 
-public class MockBrowserActivity extends Activity {}
+class MockBrowserActivity : Activity()
