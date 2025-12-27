@@ -21,6 +21,11 @@ package {
 }
 
 android_test {
+    enabled: select(release_flag("RELEASE_WEBAPP_MODULE"), {
+        true: true,
+        false: false,
+    }),
+
     name: "MtsWebAppTestCases",
     defaults: ["cts_defaults"],
 
@@ -36,6 +41,7 @@ android_test {
     srcs: ["src/**/*.java"],
 
     static_libs: [
+        "compatibility-device-util-axt",
         "ctstestrunner-axt",
         "ctstestserver",
         "junit",
@@ -44,9 +50,10 @@ android_test {
         // for AndroidJUnit4
         "androidx.test.ext.junit",
         "androidx.test.runner",
+        "androidx.test.uiautomator_uiautomator",
+        "com.android.webapp.flags-aconfig-java",
     ],
 
-    // need to eventually invoke WebApp, so must have this
     platform_apis: true,
     test_suites: [
         "general-tests",

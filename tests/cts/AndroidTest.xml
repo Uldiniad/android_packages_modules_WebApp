@@ -19,6 +19,15 @@
     <option name="config-descriptor:metadata"
             key="mainline-param" value="com.google.android.webapp.apex" />
     <option name="not-shardable" value="true" />
+    <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
+        <option name="run-command" value="sh -c 'echo &quot;chrome --disable-fre&quot; > /data/local/tmp/chrome-command-line'" />
+        <option name="run-command" value="chmod 644 /data/local/tmp/chrome-command-line" />
+        <option name="run-command" value="am force-stop com.android.chrome" />
+        <option name="run-command" value="settings put global package_verifier_user_consent -1" />
+        <option name="teardown-command" value="settings delete global package_verifier_user_consent" />
+        <option name="teardown-command" value="rm /data/local/tmp/chrome-command-line" />
+        <option name="teardown-command" value="am force-stop com.android.chrome" />
+    </target_preparer>
     <target_preparer class="com.android.tradefed.targetprep.suite.SuiteApkInstaller">
         <option name="cleanup-apks" value="true" />
         <option name="test-file-name" value="MtsWebAppTestCases.apk" />
