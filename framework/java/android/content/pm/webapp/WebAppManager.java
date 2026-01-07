@@ -94,6 +94,9 @@ public final class WebAppManager {
     @GuardedBy("mLock")
     private final List<Runnable> mPendingRequests = new ArrayList<>();
 
+    @GuardedBy("mLock")
+    private int mActiveRequests = 0;
+
     private final ServiceConnection mConnection =
             new ServiceConnection() {
                 @Override
@@ -171,6 +174,35 @@ public final class WebAppManager {
         }
     }
 
+    private void startRequest() {
+        synchronized (mLock) {
+            mActiveRequests++;
+        }
+    }
+
+    private void endRequest() {
+        synchronized (mLock) {
+            if (mActiveRequests > 0) {
+                mActiveRequests--;
+                if (mActiveRequests == 0) {
+                    // TODO(b/448832874): Don't unbind immediately if the request comes from DPC, so
+                    // that the service won't be bound and unbound frequently if many web apps are
+                    // installed in the background sequentially.
+                    unbindServiceLocked();
+                }
+            }
+        }
+    }
+
+    @GuardedBy("mLock")
+    private void unbindServiceLocked() {
+        if (mWebAppService != null || mIsBinding) {
+            mContext.unbindService(mConnection);
+            mWebAppService = null;
+            mIsBinding = false;
+        }
+    }
+
     /**
      * Requests the installation of a Web App.
      *
@@ -189,6 +221,18 @@ public final class WebAppManager {
             @NonNull WebAppInstallRequest request,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull ObjIntConsumer<String> callback) {
+        // Track the number of active requests so that we can unbind from the service after all
+        // requests are finished.
+        startRequest();
+        final ObjIntConsumer<String> wrappedCallback =
+                (packageName, resultCode) -> {
+                    try {
+                        callback.accept(packageName, resultCode);
+                    } finally {
+                        endRequest();
+                    }
+                };
+
         try {
             enqueueRequest(
                     service -> {
@@ -202,14 +246,16 @@ public final class WebAppManager {
                                         public void onInstallResult(
                                                 int resultCode, @Nullable String packageName) {
                                             executor.execute(
-                                                    () -> callback.accept(packageName, resultCode));
+                                                    () ->
+                                                            wrappedCallback.accept(
+                                                                    packageName, resultCode));
                                         }
                                     });
                         } catch (RemoteException e) {
                             Log.e(TAG, "RemoteException while calling install() on service.", e);
                             executor.execute(
                                     () ->
-                                            callback.accept(
+                                            wrappedCallback.accept(
                                                     null,
                                                     WebAppInstallRequest.RESULT_INTERNAL_ERROR));
                         }
@@ -217,13 +263,15 @@ public final class WebAppManager {
                     () ->
                             executor.execute(
                                     () ->
-                                            callback.accept(
+                                            wrappedCallback.accept(
                                                     null,
                                                     WebAppInstallRequest.RESULT_INTERNAL_ERROR)));
         } catch (SecurityException e) {
             Log.e(TAG, "SecurityException while connecting to the service", e);
             executor.execute(
-                    () -> callback.accept(null, WebAppInstallRequest.RESULT_PERMISSION_DENIED));
+                    () ->
+                            wrappedCallback.accept(
+                                    null, WebAppInstallRequest.RESULT_PERMISSION_DENIED));
         }
     }
 
@@ -242,6 +290,18 @@ public final class WebAppManager {
             @NonNull WebAppQueryRequest request,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull IntConsumer callback) {
+        // Track the number of active requests so that we can unbind from the service after all
+        // requests are finished.
+        startRequest();
+        final IntConsumer wrappedCallback =
+                resultCode -> {
+                    try {
+                        callback.accept(resultCode);
+                    } finally {
+                        endRequest();
+                    }
+                };
+
         try {
             enqueueRequest(
                     service -> {
@@ -252,7 +312,8 @@ public final class WebAppManager {
                                         @Override
                                         @RequiresNoPermission
                                         public void onQueryResult(int resultCode) {
-                                            executor.execute(() -> callback.accept(resultCode));
+                                            executor.execute(
+                                                    () -> wrappedCallback.accept(resultCode));
                                         }
                                     });
                         } catch (RemoteException e) {
@@ -262,18 +323,19 @@ public final class WebAppManager {
                                     e);
                             executor.execute(
                                     () ->
-                                            callback.accept(
+                                            wrappedCallback.accept(
                                                     WebAppQueryRequest.RESULT_INTERNAL_ERROR));
                         }
                     },
                     () ->
                             executor.execute(
                                     () ->
-                                            callback.accept(
+                                            wrappedCallback.accept(
                                                     WebAppQueryRequest.RESULT_INTERNAL_ERROR)));
         } catch (SecurityException e) {
             Log.e(TAG, "SecurityException while connecting to the service", e);
-            executor.execute(() -> callback.accept(WebAppQueryRequest.RESULT_PERMISSION_DENIED));
+            executor.execute(
+                    () -> wrappedCallback.accept(WebAppQueryRequest.RESULT_PERMISSION_DENIED));
         }
     }
 }
