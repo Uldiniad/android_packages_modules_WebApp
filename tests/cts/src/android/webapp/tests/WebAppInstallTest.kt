@@ -78,6 +78,11 @@ class WebAppInstallTest {
 
     @After
     fun tearDown() {
+        // Also skip teardown if the feature flag is disabled
+        if (!Flags.enableWebAppServiceV2()) {
+            return
+        }
+
         testServer.shutdown()
         installedPackageName?.let { uiDevice.executeShellCommand("pm uninstall $it") }
     }
