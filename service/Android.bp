@@ -42,7 +42,6 @@ android_app {
         "androidx.core_core",
         "androidx.lifecycle_lifecycle-service",
         "apksig",
-        "bouncycastle-webapp",
         "com.android.webapp.flags-aconfig-java",
         "guava",
         "jmustache",
