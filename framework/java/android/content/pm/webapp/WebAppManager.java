@@ -25,6 +25,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.content.pm.ServiceInfo;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
@@ -61,14 +65,9 @@ import java.util.function.ObjIntConsumer;
 @FlaggedApi(Flags.FLAG_ENABLE_WEB_APP_SERVICE_V2)
 public final class WebAppManager {
     private static final String TAG = "WebAppManager";
-    private static final String WEBAPP_PACKAGE = "com.android.webapp.service";
-    private static final String WEBAPP_SERVICE_CLASS = "com.android.webapp.service.WebAppService";
-
-    private static final Intent BIND_INTENT =
-            new Intent(IWebAppService.class.getName())
-                    .setComponent(new ComponentName(WEBAPP_PACKAGE, WEBAPP_SERVICE_CLASS));
 
     private final Context mContext;
+    private Intent mBindIntent;
 
     /** {@link ExecutorService} to run blocking (e.g. AIDL) methods. */
     private final ExecutorService mExecutorService = Executors.newSingleThreadExecutor();
@@ -120,6 +119,47 @@ public final class WebAppManager {
                 }
             };
 
+    /** Resolves the intent to bind to the WebAppService system component. */
+    @Nullable
+    private Intent getBindIntent() {
+        if (mBindIntent != null) {
+            return mBindIntent;
+        }
+
+        Intent intent = new Intent(IWebAppService.class.getName());
+        List<ResolveInfo> services =
+                mContext.getPackageManager()
+                        .queryIntentServices(intent, PackageManager.MATCH_SYSTEM_ONLY);
+
+        if (services.isEmpty()) {
+            return null;
+        }
+
+        ServiceInfo serviceInfo = null;
+        for (ResolveInfo ri : services) {
+            if (ri.serviceInfo == null) {
+                continue;
+            }
+            if ((ri.serviceInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
+                if (serviceInfo != null) {
+                    // Should not happen as we expect only one system app to handle this.
+                    Log.wtf(TAG, "Multiple system apps handle " + intent);
+                } else {
+                    serviceInfo = ri.serviceInfo;
+                }
+            }
+        }
+
+        if (serviceInfo == null) {
+            return null;
+        }
+
+        mBindIntent =
+                new Intent(intent)
+                        .setComponent(new ComponentName(serviceInfo.packageName, serviceInfo.name));
+        return mBindIntent;
+    }
+
     /**
      * Internal helper to handle connection logic and queuing.
      *
@@ -159,8 +199,11 @@ public final class WebAppManager {
             }
 
             try {
-                mIsBinding =
-                        mContext.bindService(BIND_INTENT, mConnection, Context.BIND_AUTO_CREATE);
+                Intent bindIntent = getBindIntent();
+                if (bindIntent != null) {
+                    mIsBinding =
+                            mContext.bindService(bindIntent, mConnection, Context.BIND_AUTO_CREATE);
+                }
                 if (!mIsBinding) {
                     Log.e(TAG, "The connection to WebAppService was not successful.");
                     // Binding failed immediately; remove the request we just added and fail.
