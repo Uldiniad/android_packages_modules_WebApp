@@ -36,7 +36,11 @@
         <service
             android:name=".WebAppService"
             android:exported="true"
-            android:featureFlag="com.android.webapp.flags.enable_web_app_service_v2" />
+            android:featureFlag="com.android.webapp.flags.enable_web_app_service_v2">
+            <intent-filter>
+                <action android:name="com.android.webapp.IWebAppService" />
+            </intent-filter>
+        </service>
 
         <activity android:name=".view.InstallConfirmActivity"
             android:exported="false"
