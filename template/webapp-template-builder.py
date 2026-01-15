@@ -78,30 +78,38 @@ def main():
 
     with zipfile.ZipFile(out_zip, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as out:
         # 1. AndroidManifest.xml and colors.xml Mustache templates
-        out.write(android_manifest, 'AndroidManifest.xml.mustache')
-        out.write(colors_xml, 'colors.xml.mustache')
+        _write_file_to_zip(android_manifest, 'AndroidManifest.xml.mustache', out)
+        _write_file_to_zip(colors_xml, 'colors.xml.mustache', out)
 
         # 2. ic_launcher.xml for adaptive icon
-        out.write(ic_launcher, 'ic_launcher.xml')
+        _write_file_to_zip(ic_launcher, 'ic_launcher.xml', out)
 
         # 3. res-ids.txt for stable resource IDs
-        out.write(res_ids, 'res-ids.txt')
+        _write_file_to_zip(res_ids, 'res-ids.txt', out)
 
         # 4. classes.dex from WebAppTemplate.apk
         with zipfile.ZipFile(template_apk, 'r') as template_zip:
             with template_zip.open('classes.dex') as classes_dex:
-                out.writestr('classes.dex', classes_dex.read())
+                info = zipfile.ZipInfo(filename='classes.dex', date_time=(2008, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                out.writestr(info, classes_dex.read())
 
         # 5. All res resources
-        for res_file in res_files:
+        for res_file in sorted(res_files):
             # We want to store them as `res/...` in the zip.
             arcname = os.path.join('res', *res_file.split(os.path.sep)[-2:])
             if 'res' in res_file:
                 components = res_file.split('/')
                 res_index = components.index('res')
                 arcname = '/'.join(components[res_index:])
-                out.write(res_file, arcname)
+                _write_file_to_zip(res_file, arcname, out)
 
+def _write_file_to_zip(in_file_path, out_filename, out_zip):
+    # Pin the timestamp to create deterministic output
+    info = zipfile.ZipInfo(filename=out_filename, date_time=(2008, 1, 1, 0, 0, 0))
+    info.compress_type = zipfile.ZIP_DEFLATED
+    with open(in_file_path, 'r') as f:
+        out_zip.writestr(info, f.read())
 
 if __name__ == '__main__':
     main()
