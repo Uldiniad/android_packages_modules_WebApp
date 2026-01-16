@@ -42,6 +42,7 @@ import com.android.webapp.service.model.InstallRequest
 import com.android.webapp.service.model.PwaManifest
 import com.android.webapp.service.view.InstallConfirmActivity
 import com.android.webapp.service.view.InstallErrorActivity
+import com.android.webapp.service.WebappStatsLog
 import com.google.common.xml.XmlEscapers
 import java.io.File
 import java.io.FileInputStream
@@ -141,7 +142,42 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         }
     }
 
+    private fun logInstallResultWithReason(
+        status: Int,
+        failureReason: Int,
+        startTime: Long,
+        apkSizeKb: Long,
+        request: InstallRequest,
+    ) {
+        val installationTimeMs = System.currentTimeMillis() - startTime
+        WebappStatsLog.write(
+            WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED,
+            status,
+            failureReason,
+            installationTimeMs,
+            apkSizeKb,
+            request.callingUid,
+        )
+    }
+
+    private fun logInstallResult(
+        status: Int,
+        startTime: Long,
+        apkSizeKb: Long,
+        request: InstallRequest,
+    ) {
+        logInstallResultWithReason(
+            status,
+            WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__FAILURE_REASON__UNKNOWN,
+            startTime,
+            apkSizeKb,
+            request,
+        )
+    }
+
     private suspend fun performInstall(request: InstallRequest) {
+        val startTime = System.currentTimeMillis()
+        var apkSizeKb = 0L
         Log.i(TAG, "Start installing $request")
         val notificationId = request.hashCode()
         updateNotification(
@@ -157,6 +193,13 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
             fetchAndParseManifest(request.manifestUrl)
                 ?: run {
                     Log.e(TAG, "Failed to fetch and parse manifest")
+                    logInstallResultWithReason(
+                        WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__STATUS__INSTALL_STATUS_FAILURE,
+                        WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__FAILURE_REASON__MANIFEST_FETCH_FAILURE,
+                        startTime,
+                        apkSizeKb,
+                        request,
+                    )
                     request.callback.onInstallResult(
                         WebAppInstallRequest.RESULT_NETWORK_ERROR,
                         null,
@@ -178,6 +221,13 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         // TODO: Add fallback to handle the case where icons are not provided in the manifest.
         if (apkInfo.icons.isEmpty()) {
             Log.e(TAG, "No icons found in the manifest")
+            logInstallResultWithReason(
+                WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__STATUS__INSTALL_STATUS_FAILURE,
+                WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__FAILURE_REASON__MANIFEST_PARSE_FAILURE,
+                startTime,
+                apkSizeKb,
+                request,
+            )
             request.callback.onInstallResult(WebAppInstallRequest.RESULT_INVALID_ARGUMENTS, null)
             updateNotification(
                 type = NotificationType.FAILURE,
@@ -195,6 +245,13 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         try {
             if (workingDir.exists() && !workingDir.deleteRecursively()) {
                 Log.e(TAG, "Failed to delete existing working directory")
+                logInstallResultWithReason(
+                    WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__STATUS__INSTALL_STATUS_FAILURE,
+                    WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__FAILURE_REASON__WORKING_DIR_DELETION_FAILURE,
+                    startTime,
+                    apkSizeKb,
+                    request,
+                )
                 request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 updateNotification(
                     type = NotificationType.FAILURE,
@@ -208,6 +265,13 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
             }
             if (!workingDir.mkdirs()) {
                 Log.e(TAG, "Failed to create working directory")
+                logInstallResultWithReason(
+                    WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__STATUS__INSTALL_STATUS_FAILURE,
+                    WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__FAILURE_REASON__WORKING_DIR_CREATION_FAILURE,
+                    startTime,
+                    apkSizeKb,
+                    request,
+                )
                 request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 updateNotification(
                     type = NotificationType.FAILURE,
@@ -226,6 +290,13 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                 // TODO: Add fallback to handle the case where icons are not downloaded
                 // successfully.
                 Log.e(TAG, "Failed to download icons")
+                logInstallResultWithReason(
+                    WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__STATUS__INSTALL_STATUS_FAILURE,
+                    WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__FAILURE_REASON__ICON_DOWNLOAD_FAILURE,
+                    startTime,
+                    apkSizeKb,
+                    request,
+                )
                 request.callback.onInstallResult(WebAppInstallRequest.RESULT_NETWORK_ERROR, null)
                 updateNotification(
                     type = NotificationType.FAILURE,
@@ -249,6 +320,12 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
 
             if (!waitForUserConfirm(request, apkInfo, appIcon)) {
                 Log.w(TAG, "User cancelled installation")
+                logInstallResult(
+                    WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__STATUS__INSTALL_STATUS_CANCELLED,
+                    startTime,
+                    apkSizeKb,
+                    request,
+                )
                 request.callback.onInstallResult(
                     WebAppInstallRequest.RESULT_CANCELLED_BY_USER,
                     null,
@@ -268,6 +345,13 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                 ApkMinter(keyStore, workingDir, apkInfo).mintApk()
                     ?: run {
                         Log.e(TAG, "Failed to mint APK")
+                        logInstallResultWithReason(
+                            WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__STATUS__INSTALL_STATUS_FAILURE,
+                            WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__FAILURE_REASON__APK_MINTING_FAILURE,
+                            startTime,
+                            apkSizeKb,
+                            request,
+                        )
                         request.callback.onInstallResult(
                             WebAppInstallRequest.RESULT_INTERNAL_ERROR,
                             null,
@@ -283,6 +367,7 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                         )
                         return
                     }
+            apkSizeKb = signedApk.length() / 1024
 
             Log.i(TAG, "Start installing minted APK for $packageName")
             val installResult =
@@ -291,6 +376,13 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                 }
                     ?: run {
                         Log.e(TAG, "Timed out waiting for package manager to install $packageName")
+                        logInstallResultWithReason(
+                            WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__STATUS__INSTALL_STATUS_FAILURE,
+                            WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__FAILURE_REASON__PACKAGE_MANAGER_FAILURE,
+                            startTime,
+                            apkSizeKb,
+                            request,
+                        )
                         request.callback.onInstallResult(
                             WebAppInstallRequest.RESULT_INTERNAL_ERROR,
                             null,
@@ -311,6 +403,13 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
 
             if (statusCode != PackageInstaller.STATUS_SUCCESS) {
                 Log.e(TAG, "Failed to install APK: $statusCode\nError message: $errorMessage")
+                logInstallResultWithReason(
+                    WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__STATUS__INSTALL_STATUS_FAILURE,
+                    WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__FAILURE_REASON__APK_INSTALL_FAILURE,
+                    startTime,
+                    apkSizeKb,
+                    request,
+                )
                 request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
                 updateNotification(
                     type = NotificationType.FAILURE,
@@ -326,6 +425,13 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to mint and install APK", e)
+            logInstallResultWithReason(
+                WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__STATUS__INSTALL_STATUS_FAILURE,
+                WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__FAILURE_REASON__APK_MINTING_FAILURE,
+                startTime,
+                apkSizeKb,
+                request,
+            )
             request.callback.onInstallResult(WebAppInstallRequest.RESULT_INTERNAL_ERROR, null)
             updateNotification(
                 type = NotificationType.FAILURE,
@@ -344,6 +450,12 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         }
 
         Log.i(TAG, "Successfully installed $packageName for $request")
+        logInstallResult(
+            WebappStatsLog.WEBAPP_INSTALLER_APP_INSTALLED__STATUS__INSTALL_STATUS_SUCCESS,
+            startTime,
+            apkSizeKb,
+            request,
+        )
         request.callback.onInstallResult(WebAppInstallRequest.RESULT_SUCCESS, packageName)
         updateNotification(
             type = NotificationType.SUCCESS,
