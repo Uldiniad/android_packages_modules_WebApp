@@ -60,7 +60,7 @@ sdk {
         false: false,
     }),
 
-    name: "webapp-sdk",
+    name: "webapp-module-sdk",
     bootclasspath_fragments: ["com.android.webapp-bootclasspath-fragment"],
     apexes: ["com.android.webapp"],
 }
