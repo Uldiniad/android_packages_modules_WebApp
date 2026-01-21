@@ -44,6 +44,7 @@ public class WebAppInstallRequest {
      * @hide
      */
     @IntDef({
+        RESULT_UNKNOWN,
         RESULT_SUCCESS,
         RESULT_NETWORK_ERROR,
         RESULT_INTERNAL_ERROR,
@@ -51,6 +52,8 @@ public class WebAppInstallRequest {
         RESULT_DUPLICATED_REQUEST,
         RESULT_INVALID_ARGUMENTS,
         RESULT_CANCELLED_BY_USER,
+        RESULT_SECURITY_ERROR,
+        RESULT_UNAVAILABLE
     })
     @Retention(SOURCE)
     public @interface ResultCode {}
@@ -80,6 +83,15 @@ public class WebAppInstallRequest {
 
     /** The installation was cancelled by the user. */
     public static final int RESULT_CANCELLED_BY_USER = 6;
+
+    /** The installation was blocked due to security check failures. */
+    public static final int RESULT_SECURITY_ERROR = 7;
+
+    /** The installation failed due to the service being unavailable. */
+    public static final int RESULT_UNAVAILABLE = 8;
+
+    /** The installation result is unknown. */
+    public static final int RESULT_UNKNOWN = 9;
 
     private final CharSequence mTitle;
     private final String mManifestUrl;

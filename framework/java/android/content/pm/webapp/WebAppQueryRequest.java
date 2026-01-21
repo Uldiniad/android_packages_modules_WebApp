@@ -44,10 +44,12 @@ public class WebAppQueryRequest {
      * @hide
      */
     @IntDef({
+        RESULT_UNKNOWN,
         RESULT_INSTALLED,
         RESULT_NOT_INSTALLED,
         RESULT_INTERNAL_ERROR,
         RESULT_PERMISSION_DENIED,
+        RESULT_UNAVAILABLE
     })
     @Retention(SOURCE)
     public @interface ResultCode {}
@@ -90,6 +92,12 @@ public class WebAppQueryRequest {
      * </ul>
      */
     public static final int RESULT_PERMISSION_DENIED = 3;
+
+    /** The query failed due to the service being unavailable. */
+    public static final int RESULT_UNAVAILABLE = 4;
+
+    /** The query result is unknown. */
+    public static final int RESULT_UNKNOWN = 5;
 
     private final String mPackageName;
 
