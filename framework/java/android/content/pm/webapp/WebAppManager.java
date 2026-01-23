@@ -21,6 +21,7 @@ import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.RequiresNoPermission;
+import android.annotation.SystemApi;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -31,6 +32,7 @@ import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.provider.Settings;
 import android.util.Log;
 
 import com.android.internal.annotations.GuardedBy;
@@ -380,5 +382,26 @@ public final class WebAppManager {
             executor.execute(
                     () -> wrappedCallback.accept(WebAppQueryRequest.RESULT_PERMISSION_DENIED));
         }
+    }
+
+    /**
+     * Checks if the Web App service is available.
+     *
+     * @return {@code true} if the service is available, {@code false} otherwise.
+     */
+    public boolean isAvailable() {
+        return Settings.Global.getInt(mContext.getContentResolver(), "enable_webapp_minter", 0)
+                == 1;
+    }
+
+    /**
+     * Checks if the Web App developer option should be shown.
+     *
+     * @return {@code true} if the developer option should be shown, {@code false} otherwise.
+     * @hide
+     */
+    @SystemApi
+    public boolean shouldShowDeveloperOption() {
+        return true;
     }
 }
