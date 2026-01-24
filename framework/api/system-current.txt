@@ -1,1 +1,9 @@
 // Signature format: 2.0
+package android.content.pm.webapp {
+
+  @FlaggedApi("com.android.webapp.flags.enable_web_app_service_v2") public final class WebAppManager {
+    method public boolean shouldShowDeveloperOption();
+  }
+
+}
+

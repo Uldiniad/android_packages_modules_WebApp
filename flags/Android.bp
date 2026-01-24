@@ -49,6 +49,7 @@ java_aconfig_library {
     ],
     visibility: [
         "//frameworks/base:__subpackages__",
+        "//packages/apps/Settings:__subpackages__",
         "//packages/modules/WebApp:__subpackages__",
     ],
 }

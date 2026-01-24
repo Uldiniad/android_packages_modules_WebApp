@@ -48,6 +48,7 @@ class WebAppInstallTest {
     private lateinit var testServer: CtsTestServer
     private lateinit var uiDevice: UiDevice
     private var installedPackageName: String? = null
+    private var originalMinterState: String? = null
 
     @Before
     fun setUp() {
@@ -58,6 +59,15 @@ class WebAppInstallTest {
 
         val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
         webAppManager = targetContext.getSystemService(WebAppManager::class.java)!!
+
+        // Enable developer option
+        try {
+            originalMinterState =
+                SystemUtil.runShellCommand("settings get global enable_webapp_minter").trim()
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to get original minter state", e)
+        }
+        SystemUtil.runShellCommand("settings put global enable_webapp_minter 1")
 
         testServer = CtsTestServer(context)
         uiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
@@ -85,6 +95,15 @@ class WebAppInstallTest {
 
         testServer.shutdown()
         installedPackageName?.let { uiDevice.executeShellCommand("pm uninstall $it") }
+
+        // Restore developer option
+        if (originalMinterState == "null" || originalMinterState == null) {
+            SystemUtil.runShellCommand("settings delete global enable_webapp_minter")
+        } else {
+            SystemUtil.runShellCommand(
+                "settings put global enable_webapp_minter $originalMinterState"
+            )
+        }
     }
 
     @Test

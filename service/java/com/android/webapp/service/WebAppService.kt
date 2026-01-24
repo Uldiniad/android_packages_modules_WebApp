@@ -22,6 +22,7 @@ import android.content.pm.PackageManager
 import android.content.pm.webapp.WebAppInstallRequest
 import android.content.pm.webapp.WebAppQueryRequest
 import android.os.IBinder
+import android.provider.Settings
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.lifecycle.LifecycleService
@@ -61,6 +62,12 @@ class WebAppService : LifecycleService() {
                 // queries run with the permissions of the current process (system app), not the
                 // calling app.
                 val token = clearCallingIdentity()
+
+                if (!isMinterEnabled()) {
+                    callback.onInstallResult(WebAppInstallRequest.RESULT_UNAVAILABLE, null)
+                    restoreCallingIdentity(token)
+                    return
+                }
 
                 val callingPackage: String
                 val callingAppName: CharSequence
@@ -170,6 +177,10 @@ class WebAppService : LifecycleService() {
                             // run with the permissions of the current process (system app), not the
                             // calling app.
                             val token = clearCallingIdentity()
+                            if (!isMinterEnabled()) {
+                                restoreCallingIdentity(token)
+                                return@withTimeoutOrNull WebAppQueryRequest.RESULT_UNAVAILABLE
+                            }
                             try {
                                 installer.queryPackage(packageName, callingUid)
                             } catch (e: Exception) {
@@ -204,6 +215,10 @@ class WebAppService : LifecycleService() {
         Log.d(TAG, "Service onDestroy")
         installerScope.cancel("Cancelled due to service being shut down")
         exitProcess(0)
+    }
+
+    private fun isMinterEnabled(): Boolean {
+        return Settings.Global.getInt(contentResolver, "enable_webapp_minter", 0) == 1
     }
 
     companion object {
