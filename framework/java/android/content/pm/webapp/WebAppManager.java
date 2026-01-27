@@ -21,7 +21,6 @@ import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.RequiresNoPermission;
-import android.annotation.SystemApi;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -392,16 +391,5 @@ public final class WebAppManager {
     public boolean isAvailable() {
         return Settings.Global.getInt(mContext.getContentResolver(), "enable_webapp_minter", 0)
                 == 1;
-    }
-
-    /**
-     * Checks if the Web App developer option should be shown.
-     *
-     * @return {@code true} if the developer option should be shown, {@code false} otherwise.
-     * @hide
-     */
-    @SystemApi
-    public boolean shouldShowDeveloperOption() {
-        return true;
     }
 }
