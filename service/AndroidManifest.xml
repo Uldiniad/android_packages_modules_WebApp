@@ -40,6 +40,9 @@
             <intent-filter>
                 <action android:name="com.android.webapp.IWebAppService" />
             </intent-filter>
+            <meta-data
+                android:name="com.android.webapp.developer_option_visible"
+                android:value="true" />
         </service>
 
         <activity android:name=".view.InstallConfirmActivity"
