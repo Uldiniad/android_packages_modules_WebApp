@@ -58,7 +58,9 @@ android_test {
 
     platform_apis: true,
     test_suites: [
+        "cts",
         "general-tests",
+        "mcts-webapp",
         "mts-webapp",
     ],
     test_config: "AndroidTest.xml",
