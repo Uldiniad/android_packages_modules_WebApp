@@ -64,4 +64,8 @@ android_test {
         "mts-webapp",
     ],
     test_config: "AndroidTest.xml",
+    data: [
+        ":CtsWebAppIneligibleApp",
+        ":CtsWebAppQueryHelperApp",
+    ],
 }
