@@ -26,6 +26,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import com.android.compatibility.common.util.ApiTest
 import com.android.compatibility.common.util.SystemUtil
 import com.android.webapp.flags.Flags
 import com.google.common.truth.Truth.assertThat
@@ -107,6 +108,13 @@ class WebAppInstallTest {
     }
 
     @Test
+    @ApiTest(
+        apis =
+            [
+                "android.content.pm.webapp.WebAppManager#install",
+                "android.content.pm.webapp.WebAppInstallRequest.Builder#build",
+            ]
+    )
     fun testInstallWebApp() {
         assertThat(webAppManager).isNotNull()
 
