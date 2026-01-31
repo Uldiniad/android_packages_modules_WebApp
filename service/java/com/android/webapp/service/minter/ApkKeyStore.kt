@@ -161,18 +161,20 @@ class ApkKeyStore {
         return try {
             // Get the info about whether the target package was installed by the calling app.
             val sourceInfo = packageManager.getInstallSourceInfo(packageName)
-            val originatingPackageName =
-                sourceInfo.originatingPackageName
-                    ?: run {
-                        Log.e(TAG, "Failed to get originating package name for $packageName")
-                        // Return RESULT_PERMISSION_DENIED here if the calling app cannot query all
-                        // packages to avoid leaking installed status of a random package.
-                        return if (callingAppCanQueryAllPackages)
-                            WebAppQueryRequest.RESULT_INTERNAL_ERROR
-                        else WebAppQueryRequest.RESULT_PERMISSION_DENIED
-                    }
-            val originatingUid = packageManager.getPackageUid(originatingPackageName, 0)
-            val isInstalledByCallingApp = originatingUid == callingUid
+            val originatingPackageName = sourceInfo.originatingPackageName
+            val isInstalledByCallingApp =
+                if (originatingPackageName == null) {
+                    Log.e(TAG, "Failed to get originating package name for $packageName")
+                    // Return RESULT_PERMISSION_DENIED here if the calling app cannot query all
+                    // packages to avoid leaking installed status of a random package.
+                    if (!callingAppCanQueryAllPackages)
+                        return WebAppQueryRequest.RESULT_PERMISSION_DENIED
+                    // If the calling app has query all packages permission, treat packages without
+                    // origin info as not installed by the Web App Installer.
+                    false
+                } else {
+                    packageManager.getPackageUid(originatingPackageName, 0) == callingUid
+                }
 
             // Get the info about whether the target package is signed by us.
             val packageInfo =
