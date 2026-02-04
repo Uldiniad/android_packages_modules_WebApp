@@ -18,6 +18,11 @@ package {
 }
 
 android_test_helper_app {
+    enabled: select(release_flag("RELEASE_WEBAPP_MODULE"), {
+        true: true,
+        false: false,
+    }),
+
     name: "CtsWebAppIneligibleApp",
     defaults: ["cts_defaults"],
     sdk_version: "test_current",
