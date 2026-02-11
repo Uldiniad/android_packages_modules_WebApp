@@ -24,6 +24,7 @@ import android.webkit.cts.CtsTestServer
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 import com.android.compatibility.common.util.SystemUtil
 import com.android.webapp.flags.Flags
@@ -154,8 +155,16 @@ abstract class WebAppTestBase {
                 executeShellCommand(
                     "monkey -p $installedPackageName -c android.intent.category.LAUNCHER 1"
                 )
-                val helloText =
-                    wait(Until.findObject(By.text(expectedTextOnPage)), uiBrowserRenderTimeout)
+                // Chrome's First Run Experience (OOBE) might show up on 'user' builds.
+                // We try to get past it if it appears.
+                var helloText: UiObject2? = null
+                val startTime = System.currentTimeMillis()
+                while (System.currentTimeMillis() - startTime < uiBrowserRenderTimeout) {
+                    helloText = wait(Until.findObject(By.text(expectedTextOnPage)), 1000)
+                    if (helloText != null) break
+
+                    findObject(By.text(CHROME_OOBE_TEXT))?.click()
+                }
                 assertThat(helloText).isNotNull()
             }
         }
@@ -165,6 +174,7 @@ abstract class WebAppTestBase {
         const val TAG = "WebAppTestBase"
         const val TEST_PWA_NAME = "Test PWA"
         const val TEST_PWA_TEXT = "Hello, I can run!"
+        const val CHROME_OOBE_TEXT = "Use without an account"
         const val MANIFEST_PATH = "manifest.json"
         // A path that doesn't exist on the server to trigger 404
         const val INVALID_MANIFEST_PATH = "invalid.json"
