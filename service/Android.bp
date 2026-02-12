@@ -87,6 +87,8 @@ android_app {
     privileged: true,
     privapp_allowlist: ":privapp_allowlist_com.android.webapp.service.xml",
 
+    preinstall_allowlist: ":preinstalled-packages-com.android.webapp.service.xml",
+
     certificate: ":com.android.webapp.certificate",
 
     updatable: true,
@@ -104,4 +106,9 @@ android_app {
         "Android-Apache-2.0",
         "opensourcerequest",
     ],
+}
+
+filegroup {
+    name: "preinstalled-packages-com.android.webapp.service.xml",
+    srcs: ["preinstalled-packages-com.android.webapp.service.xml"],
 }
