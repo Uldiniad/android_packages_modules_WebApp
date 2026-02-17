@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--  Copyright (C) 2025 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+ -->
+
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name" msgid="1825679372791147219">"Web 应用服务"</string>
+    <string name="install_confirm_title" msgid="5972350544797987246">"要安装“<xliff:g id="APP_NAME">%1$s</xliff:g>”吗?"</string>
+    <string name="install_confirm_message" msgid="5764102543134751275">"您信任“<xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g>”并允许其安装以下来源的应用吗：\n<xliff:g id="START_URL">%2$s</xliff:g>"</string>
+    <string name="install_confirm_icon_description" msgid="673459932821818380">"“<xliff:g id="APP_NAME">%1$s</xliff:g>”的应用图标"</string>
+    <string name="install_confirm_button_install" msgid="860007644436567283">"安装"</string>
+    <string name="install_confirm_button_cancel" msgid="5579080617224508498">"取消"</string>
+    <string name="notification_channel_name" msgid="5745683696549123739">"Web 应用安装"</string>
+    <string name="notification_getting_info" msgid="1198121019448605494">"正在获取关于“<xliff:g id="APP_NAME">%1$s</xliff:g>”的信息…"</string>
+    <string name="notification_installing" msgid="1174642021518166823">"正在安装“<xliff:g id="APP_NAME">%1$s</xliff:g>”…"</string>
+    <string name="notification_installed" msgid="751524468262994358">"已安装“<xliff:g id="APP_NAME">%1$s</xliff:g>”"</string>
+    <string name="notification_install_failed" msgid="4328801327538064657">"安装“<xliff:g id="APP_NAME">%1$s</xliff:g>”时出现问题"</string>
+    <string name="notification_cancelled" msgid="6258659308117620464">"已取消安装“<xliff:g id="APP_NAME">%1$s</xliff:g>”"</string>
+    <string name="notification_launch" msgid="1953661902208750566">"启用"</string>
+    <string name="notification_action_details" msgid="1635171309115247633">"详细信息"</string>
+    <string name="notification_action_got_it" msgid="8613438892131917608">"知道了"</string>
+    <string name="error_dialog_title" msgid="3182308551064611376">"安装失败"</string>
+</resources>
