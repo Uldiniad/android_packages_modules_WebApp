@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--  Copyright (C) 2025 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+ -->
+
+<resources xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name" msgid="1825679372791147219">"Servicio de aplicación web"</string>
+    <string name="install_confirm_title" msgid="5972350544797987246">"¿Instalar <xliff:g id="APP_NAME">%1$s</xliff:g>?"</string>
+    <string name="install_confirm_message" msgid="5764102543134751275">"¿Confías en <xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g> para instalar la aplicación desde \n<xliff:g id="START_URL">%2$s</xliff:g>?"</string>
+    <string name="install_confirm_icon_description" msgid="673459932821818380">"Icono de la aplicación de <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="install_confirm_button_install" msgid="860007644436567283">"Instalar"</string>
+    <string name="install_confirm_button_cancel" msgid="5579080617224508498">"Cancelar"</string>
+    <string name="notification_channel_name" msgid="5745683696549123739">"Instalación de aplicaciones web"</string>
+    <string name="notification_getting_info" msgid="1198121019448605494">"Obteniendo información sobre <xliff:g id="APP_NAME">%1$s</xliff:g>..."</string>
+    <string name="notification_installing" msgid="1174642021518166823">"Instalando <xliff:g id="APP_NAME">%1$s</xliff:g>..."</string>
+    <string name="notification_installed" msgid="751524468262994358">"<xliff:g id="APP_NAME">%1$s</xliff:g> se ha instalado"</string>
+    <string name="notification_install_failed" msgid="4328801327538064657">"No se ha podido instalar <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="notification_cancelled" msgid="6258659308117620464">"Se ha cancelado la instalación de <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
+    <string name="notification_launch" msgid="1953661902208750566">"Lanzar"</string>
+    <string name="notification_action_details" msgid="1635171309115247633">"Detalles"</string>
+    <string name="notification_action_got_it" msgid="8613438892131917608">"Entendido"</string>
+    <string name="error_dialog_title" msgid="3182308551064611376">"No se ha podido instalar"</string>
+</resources>
