@@ -31,5 +31,5 @@
     <string name="notification_launch" msgid="1953661902208750566">"લૉન્ચ કરો"</string>
     <string name="notification_action_details" msgid="1635171309115247633">"વિગતો"</string>
     <string name="notification_action_got_it" msgid="8613438892131917608">"સમજાઈ ગયું"</string>
-    <string name="error_dialog_title" msgid="3182308551064611376">"ઇન્સ્ટોલેશન નિષ્ફળ થયું"</string>
+    <string name="error_dialog_title" msgid="3182308551064611376">"ઇન્સ્ટૉલેશન નિષ્ફળ થયું"</string>
 </resources>

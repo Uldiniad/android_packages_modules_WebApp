@@ -28,7 +28,7 @@
     <string name="notification_installed" msgid="751524468262994358">"<xliff:g id="APP_NAME">%1$s</xliff:g> をインストールしました"</string>
     <string name="notification_install_failed" msgid="4328801327538064657">"<xliff:g id="APP_NAME">%1$s</xliff:g> をインストールできませんでした"</string>
     <string name="notification_cancelled" msgid="6258659308117620464">"<xliff:g id="APP_NAME">%1$s</xliff:g> のインストールをキャンセルしました"</string>
-    <string name="notification_launch" msgid="1953661902208750566">"リリース"</string>
+    <string name="notification_launch" msgid="1953661902208750566">"起動"</string>
     <string name="notification_action_details" msgid="1635171309115247633">"詳細"</string>
     <string name="notification_action_got_it" msgid="8613438892131917608">"OK"</string>
     <string name="error_dialog_title" msgid="3182308551064611376">"インストールできませんでした"</string>
