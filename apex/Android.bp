@@ -83,6 +83,10 @@ bootclasspath_fragment {
         },
     ],
 
+    dex_preopt: {
+        profile: "packages/modules/WebApp/apex/boot-image-profile.txt",
+    },
+
     // Additional stubs libraries that this fragment's contents use which are
     // not provided by another bootclasspath_fragment.
     additional_stubs: [
