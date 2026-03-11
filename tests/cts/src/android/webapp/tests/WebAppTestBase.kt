@@ -155,7 +155,7 @@ abstract class WebAppTestBase {
                 executeShellCommand(
                     "monkey -p $installedPackageName -c android.intent.category.LAUNCHER 1"
                 )
-                // Chrome's First Run Experience (OOBE) might show up on 'user' builds.
+                // Chrome's First Run Experience (FRE) might show up on 'user' builds.
                 // We try to get past it if it appears.
                 var helloText: UiObject2? = null
                 val startTime = System.currentTimeMillis()
@@ -163,7 +163,7 @@ abstract class WebAppTestBase {
                     helloText = wait(Until.findObject(By.text(expectedTextOnPage)), 1000)
                     if (helloText != null) break
 
-                    findObject(By.text(CHROME_OOBE_TEXT))?.click()
+                    findObject(By.res("com.android.chrome", CHROME_FRE_DISMISS_RES_ID))?.click()
                 }
                 assertThat(helloText).isNotNull()
             }
@@ -174,7 +174,7 @@ abstract class WebAppTestBase {
         const val TAG = "WebAppTestBase"
         const val TEST_PWA_NAME = "Test PWA"
         const val TEST_PWA_TEXT = "Hello, I can run!"
-        const val CHROME_OOBE_TEXT = "Use without an account"
+        const val CHROME_FRE_DISMISS_RES_ID = "signin_fre_dismiss_button"
         const val MANIFEST_PATH = "manifest.json"
         // A path that doesn't exist on the server to trigger 404
         const val INVALID_MANIFEST_PATH = "invalid.json"
