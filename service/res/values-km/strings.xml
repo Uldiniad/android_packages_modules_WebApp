@@ -18,7 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name" msgid="1825679372791147219">"សេវាកម្មកម្មវិធីវេប"</string>
     <string name="install_confirm_title" msgid="5972350544797987246">"ដំឡើង <xliff:g id="APP_NAME">%1$s</xliff:g> ឬ?"</string>
-    <string name="install_confirm_message" msgid="5764102543134751275">"តើអ្នកទុកចិត្ត<xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g>ក្នុងការដំឡើងកម្មវិធីពី៖\n<xliff:g id="START_URL">%2$s</xliff:g>"</string>
+    <string name="install_confirm_message" msgid="5764102543134751275">"តើអ្នកទុកចិត្ត <xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g> ក្នុងការដំឡើងកម្មវិធីពី៖\n<xliff:g id="START_URL">%2$s</xliff:g>"</string>
     <string name="install_confirm_icon_description" msgid="673459932821818380">"រូបកម្មវិធីសម្រាប់ <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="install_confirm_button_install" msgid="860007644436567283">"ដំឡើង"</string>
     <string name="install_confirm_button_cancel" msgid="5579080617224508498">"បោះបង់"</string>

@@ -18,7 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name" msgid="1825679372791147219">"網絡應用程式服務"</string>
     <string name="install_confirm_title" msgid="5972350544797987246">"要安裝「<xliff:g id="APP_NAME">%1$s</xliff:g>」嗎？"</string>
-    <string name="install_confirm_message" msgid="5764102543134751275">"你信任「<xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g>」從以下來源安裝應用程式嗎：\n<xliff:g id="START_URL">%2$s</xliff:g>"</string>
+    <string name="install_confirm_message" msgid="5764102543134751275">"你信任「<xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g>」並要從以下網址安裝應用程式嗎：\n<xliff:g id="START_URL">%2$s</xliff:g>"</string>
     <string name="install_confirm_icon_description" msgid="673459932821818380">"「<xliff:g id="APP_NAME">%1$s</xliff:g>」應用程式圖示"</string>
     <string name="install_confirm_button_install" msgid="860007644436567283">"安裝"</string>
     <string name="install_confirm_button_cancel" msgid="5579080617224508498">"取消"</string>
@@ -28,7 +28,7 @@
     <string name="notification_installed" msgid="751524468262994358">"「<xliff:g id="APP_NAME">%1$s</xliff:g>」已安裝"</string>
     <string name="notification_install_failed" msgid="4328801327538064657">"安裝「<xliff:g id="APP_NAME">%1$s</xliff:g>」時發生問題"</string>
     <string name="notification_cancelled" msgid="6258659308117620464">"已取消安裝「<xliff:g id="APP_NAME">%1$s</xliff:g>」"</string>
-    <string name="notification_launch" msgid="1953661902208750566">"發佈"</string>
+    <string name="notification_launch" msgid="1953661902208750566">"開啟"</string>
     <string name="notification_action_details" msgid="1635171309115247633">"詳情"</string>
     <string name="notification_action_got_it" msgid="8613438892131917608">"知道了"</string>
     <string name="error_dialog_title" msgid="3182308551064611376">"安裝失敗"</string>

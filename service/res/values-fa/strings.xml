@@ -17,7 +17,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name" msgid="1825679372791147219">"خدمات برنامه وب"</string>
-    <string name="install_confirm_title" msgid="5972350544797987246">"<xliff:g id="APP_NAME">%1$s</xliff:g> نصب شود؟"</string>
+    <string name="install_confirm_title" msgid="5972350544797987246">"‫<xliff:g id="APP_NAME">%1$s</xliff:g> نصب شود؟"</string>
     <string name="install_confirm_message" msgid="5764102543134751275">"آیا به <xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g> اعتماد دارید که برنامه را از این منبع نصب کند:\n<xliff:g id="START_URL">%2$s</xliff:g>"</string>
     <string name="install_confirm_icon_description" msgid="673459932821818380">"نماد برنامه برای <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="install_confirm_button_install" msgid="860007644436567283">"نصب"</string>
@@ -25,7 +25,7 @@
     <string name="notification_channel_name" msgid="5745683696549123739">"نصب برنامه وب"</string>
     <string name="notification_getting_info" msgid="1198121019448605494">"درحال دریافت اطلاعات درباره <xliff:g id="APP_NAME">%1$s</xliff:g>…"</string>
     <string name="notification_installing" msgid="1174642021518166823">"درحال نصب <xliff:g id="APP_NAME">%1$s</xliff:g>…"</string>
-    <string name="notification_installed" msgid="751524468262994358">"<xliff:g id="APP_NAME">%1$s</xliff:g> نصب شده است."</string>
+    <string name="notification_installed" msgid="751524468262994358">"‫<xliff:g id="APP_NAME">%1$s</xliff:g> نصب شده است."</string>
     <string name="notification_install_failed" msgid="4328801327538064657">"مشکل در نصب <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="notification_cancelled" msgid="6258659308117620464">"نصب <xliff:g id="APP_NAME">%1$s</xliff:g> لغو شد"</string>
     <string name="notification_launch" msgid="1953661902208750566">"راه‌اندازی"</string>

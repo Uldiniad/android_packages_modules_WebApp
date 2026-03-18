@@ -18,7 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name" msgid="1825679372791147219">"Servicio de app web"</string>
     <string name="install_confirm_title" msgid="5972350544797987246">"¿Quieres instalar <xliff:g id="APP_NAME">%1$s</xliff:g>?"</string>
-    <string name="install_confirm_message" msgid="5764102543134751275">"¿Confías en <xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g> para instalar la app desde\n<xliff:g id="START_URL">%2$s</xliff:g>?"</string>
+    <string name="install_confirm_message" msgid="5764102543134751275">"¿Confías en <xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g> para instalar la app desde esta URL?\n<xliff:g id="START_URL">%2$s</xliff:g>"</string>
     <string name="install_confirm_icon_description" msgid="673459932821818380">"Ícono de la app <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="install_confirm_button_install" msgid="860007644436567283">"Instalar"</string>
     <string name="install_confirm_button_cancel" msgid="5579080617224508498">"Cancelar"</string>
