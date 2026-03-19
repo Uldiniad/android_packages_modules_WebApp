@@ -18,7 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name" msgid="1825679372791147219">"વેબ ઍપ સેવા"</string>
     <string name="install_confirm_title" msgid="5972350544797987246">"<xliff:g id="APP_NAME">%1$s</xliff:g> ઇન્સ્ટૉલ કરીએ?"</string>
-    <string name="install_confirm_message" msgid="5764102543134751275">"શું તમે <xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g> પર વિશ્વાસ કરો છો કે તે આ URL પરથી ઍપ ઇન્સ્ટૉલ કરશે:\n<xliff:g id="START_URL">%2$s</xliff:g>"</string>
+    <string name="install_confirm_message" msgid="5764102543134751275">"શું તમે <xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g> પર વિશ્વાસ કરો છો, નીચે આપેલી લિંક દ્વારા ઍપ ઇન્સ્ટૉલ કરવા માટે:\n<xliff:g id="START_URL">%2$s</xliff:g>"</string>
     <string name="install_confirm_icon_description" msgid="673459932821818380">"<xliff:g id="APP_NAME">%1$s</xliff:g> માટે ઍપનું આઇકન"</string>
     <string name="install_confirm_button_install" msgid="860007644436567283">"ઇન્સ્ટૉલ કરો"</string>
     <string name="install_confirm_button_cancel" msgid="5579080617224508498">"રદ કરો"</string>
@@ -26,7 +26,7 @@
     <string name="notification_getting_info" msgid="1198121019448605494">"<xliff:g id="APP_NAME">%1$s</xliff:g> વિશે માહિતી મેળવી રહ્યાં છીએ..."</string>
     <string name="notification_installing" msgid="1174642021518166823">"<xliff:g id="APP_NAME">%1$s</xliff:g> ઇન્સ્ટૉલ કરી રહ્યાં છીએ..."</string>
     <string name="notification_installed" msgid="751524468262994358">"<xliff:g id="APP_NAME">%1$s</xliff:g> ઇન્સ્ટૉલ કરવામાં આવી"</string>
-    <string name="notification_install_failed" msgid="4328801327538064657">"<xliff:g id="APP_NAME">%1$s</xliff:g> ઇન્સ્ટૉલ કરવામાં મુશ્કેલી"</string>
+    <string name="notification_install_failed" msgid="4328801327538064657">"<xliff:g id="APP_NAME">%1$s</xliff:g> ઇન્સ્ટૉલ કરવામાં મુશ્કેલી આવી"</string>
     <string name="notification_cancelled" msgid="6258659308117620464">"<xliff:g id="APP_NAME">%1$s</xliff:g> ઇન્સ્ટૉલ કરવાનું રદ કર્યું"</string>
     <string name="notification_launch" msgid="1953661902208750566">"લૉન્ચ કરો"</string>
     <string name="notification_action_details" msgid="1635171309115247633">"વિગતો"</string>

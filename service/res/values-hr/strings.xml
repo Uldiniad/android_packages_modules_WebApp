@@ -18,14 +18,14 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name" msgid="1825679372791147219">"Usluga web-aplikacije"</string>
     <string name="install_confirm_title" msgid="5972350544797987246">"Želite li instalirati aplikaciju <xliff:g id="APP_NAME">%1$s</xliff:g>?"</string>
-    <string name="install_confirm_message" msgid="5764102543134751275">"Jeste li spremni dati aplikaciji <xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g> dopuštenje da instalira aplikaciju iz izvora:\n<xliff:g id="START_URL">%2$s</xliff:g>?"</string>
+    <string name="install_confirm_message" msgid="5764102543134751275">"Vjerujete li aplikaciji <xliff:g id="INVOKING_APP_NAME">%1$s</xliff:g> te želite li da instalira aplikaciju iz izvora:\n<xliff:g id="START_URL">%2$s</xliff:g>?"</string>
     <string name="install_confirm_icon_description" msgid="673459932821818380">"Ikona aplikacije <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="install_confirm_button_install" msgid="860007644436567283">"Instaliraj"</string>
     <string name="install_confirm_button_cancel" msgid="5579080617224508498">"Odustani"</string>
     <string name="notification_channel_name" msgid="5745683696549123739">"Instalacija web-aplikacije"</string>
     <string name="notification_getting_info" msgid="1198121019448605494">"Dohvaćanje informacija o aplikaciji <xliff:g id="APP_NAME">%1$s</xliff:g>…"</string>
     <string name="notification_installing" msgid="1174642021518166823">"Instaliranje aplikacije <xliff:g id="APP_NAME">%1$s</xliff:g>…"</string>
-    <string name="notification_installed" msgid="751524468262994358">"Aplikacija <xliff:g id="APP_NAME">%1$s</xliff:g> je instalirana."</string>
+    <string name="notification_installed" msgid="751524468262994358">"Aplikacija <xliff:g id="APP_NAME">%1$s</xliff:g> je instalirana"</string>
     <string name="notification_install_failed" msgid="4328801327538064657">"Problem s instalacijom aplikacije <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="notification_cancelled" msgid="6258659308117620464">"Otkazana je instalacija aplikacije <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="notification_launch" msgid="1953661902208750566">"Pokreni"</string>

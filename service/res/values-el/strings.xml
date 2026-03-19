@@ -25,7 +25,7 @@
     <string name="notification_channel_name" msgid="5745683696549123739">"Εγκατάσταση εφαρμογής ιστού"</string>
     <string name="notification_getting_info" msgid="1198121019448605494">"Λήψη πληροφοριών σχετικά με την εφαρμογή <xliff:g id="APP_NAME">%1$s</xliff:g>…"</string>
     <string name="notification_installing" msgid="1174642021518166823">"Εγκατάσταση <xliff:g id="APP_NAME">%1$s</xliff:g>…"</string>
-    <string name="notification_installed" msgid="751524468262994358">"Η εφαρμογή <xliff:g id="APP_NAME">%1$s</xliff:g> είναι εγκατεστημένη"</string>
+    <string name="notification_installed" msgid="751524468262994358">"Η εφαρμογή <xliff:g id="APP_NAME">%1$s</xliff:g> εγκαταστάθηκε"</string>
     <string name="notification_install_failed" msgid="4328801327538064657">"Πρόβλημα εγκατάστασης της εφαρμογής <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="notification_cancelled" msgid="6258659308117620464">"Ακυρώθηκε η εγκατάσταση της εφαρμογής <xliff:g id="APP_NAME">%1$s</xliff:g>"</string>
     <string name="notification_launch" msgid="1953661902208750566">"Ενεργοποίηση"</string>
