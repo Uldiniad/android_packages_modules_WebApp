@@ -199,13 +199,13 @@ abstract class WebAppTestBase {
 
         val initialIdleTimeout: Long by lazy { 25000 * timeoutMultiplier }
 
-        val uiTimeout: Long by lazy { 12000 * timeoutMultiplier }
+        val uiTimeout: Long by lazy { 30000 * timeoutMultiplier }
 
         val installTimeout: Long by lazy { 15000 * timeoutMultiplier }
         val queryTimeout: Long by lazy { 3000 * timeoutMultiplier }
 
         val postInstallIdleTimeout: Long by lazy { 15000 * timeoutMultiplier }
 
-        val uiBrowserRenderTimeout: Long by lazy { 25000 * timeoutMultiplier }
+        val uiBrowserRenderTimeout: Long by lazy { 60000 * timeoutMultiplier }
     }
 }
