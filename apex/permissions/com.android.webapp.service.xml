@@ -23,5 +23,7 @@
         <permission name="android.permission.INSTALL_PACKAGES" />
         <!-- Required to substitute app name in notifications with the calling app. -->
         <permission name="android.permission.SUBSTITUTE_NOTIFICATION_APP_NAME" />
+        <!-- Required to count fetches as the requesting app's traffic. -->
+        <permission name="android.permission.UPDATE_DEVICE_STATS" />
     </privapp-permissions>
 </permissions>

@@ -29,6 +29,7 @@ import android.content.pm.PackageManager
 import android.content.pm.webapp.WebAppInstallRequest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.TrafficStats
 import android.os.Bundle
 import android.os.Trace
 import android.util.Log
@@ -189,7 +190,7 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
 
         // TODO(b/448503528): Parse manifest properly
         val manifest =
-            fetchAndParseManifest(request.manifestUrl)
+            fetchAndParseManifest(request.manifestUrl, request.callingUid)
                 ?: run {
                     Log.e(TAG, "Failed to fetch and parse manifest")
                     logInstallResultWithReason(
@@ -288,7 +289,7 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                 return
             }
 
-            val downloadIconsResult = downloadIcons(apkInfo.icons, workingDir)
+            val downloadIconsResult = downloadIcons(apkInfo.icons, workingDir, request.callingUid)
             appIcon = downloadIconsResult.second
             if (!downloadIconsResult.first || appIcon == null) {
                 // TODO: Add fallback to handle the case where icons are not downloaded
@@ -642,13 +643,24 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         }
     }
 
-    private fun fetchAndParseManifest(manifestUrl: String): PwaManifest? {
+    // Counted as the requesting app's traffic, so its network rules and data usage apply. The
+    // socket takes the tag when connect() creates it.
+    private fun connectAs(uid: Int, connection: HttpURLConnection) {
+        TrafficStats.setThreadStatsUid(uid)
+        try {
+            connection.connect()
+        } finally {
+            TrafficStats.clearThreadStatsUid()
+        }
+    }
+
+    private fun fetchAndParseManifest(manifestUrl: String, callingUid: Int): PwaManifest? {
         var connection: HttpURLConnection? = null
         try {
             val url = URL(manifestUrl)
             connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
-            connection.connect()
+            connectAs(callingUid, connection)
 
             val responseCode = connection.responseCode
             if (responseCode != HttpURLConnection.HTTP_OK) {
@@ -818,7 +830,11 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         return prefixedString.substring(0, min(prefixedString.length, PACKAGE_NAME_MAX_LENGTH))
     }
 
-    private fun downloadIcons(icons: List<ManifestIcon>, workingDir: File): Pair<Boolean, Bitmap?> {
+    private fun downloadIcons(
+        icons: List<ManifestIcon>,
+        workingDir: File,
+        callingUid: Int,
+    ): Pair<Boolean, Bitmap?> {
         val iconsDir = File(workingDir, "icons")
         if (!iconsDir.exists() && !iconsDir.mkdirs()) {
             Log.e(TAG, "Failed to create icons directory")
@@ -840,13 +856,19 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                 if (!destDir.exists() && !destDir.mkdirs()) continue
 
                 if (icon.purpose.any { it.equals("monochrome", ignoreCase = true) }) {
-                    if (downloadIcon(icon.src, File(destDir, "ic_notification.png"))) {
+                    if (downloadIcon(icon.src, File(destDir, "ic_notification.png"), callingUid)) {
                         anySuccess = true
                     }
                 }
 
                 if (icon.purpose.any { it.equals("maskable", ignoreCase = true) }) {
-                    if (downloadIcon(icon.src, File(destDir, "ic_launcher_foreground.png"))) {
+                    if (
+                        downloadIcon(
+                            icon.src,
+                            File(destDir, "ic_launcher_foreground.png"),
+                            callingUid,
+                        )
+                    ) {
                         anySuccess = true
                     }
                 }
@@ -856,7 +878,7 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
                         icon.purpose.any { it.equals("any", ignoreCase = true) }
                 ) {
                     val destFile = File(destDir, "ic_launcher.png")
-                    if (downloadIcon(icon.src, destFile)) {
+                    if (downloadIcon(icon.src, destFile, callingUid)) {
                         anySuccess = true
                         if (appIcon == null) {
                             appIcon =
@@ -879,13 +901,13 @@ class WebAppInstaller(val service: WebAppService, scope: CoroutineScope) {
         }
     }
 
-    private fun downloadIcon(urlStr: String, destFile: File): Boolean {
+    private fun downloadIcon(urlStr: String, destFile: File, callingUid: Int): Boolean {
         var connection: HttpURLConnection? = null
         try {
             val url = URL(urlStr)
             connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
-            connection.connect()
+            connectAs(callingUid, connection)
 
             if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                 return false

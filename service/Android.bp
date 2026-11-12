@@ -77,6 +77,7 @@ android_app {
     ],
     libs: [
         "framework-annotations-lib",
+        "framework-connectivity-t.stubs.module_lib",
         "framework-webapp-aidl-java",
         "framework-webapp.stubs.module_lib",
     ],
